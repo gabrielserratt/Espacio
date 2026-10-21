@@ -1,8 +1,5 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ClerkProvider, Show, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
-import { publishableKeyFromHost } from '@clerk/react/internal';
-import { shadcn } from '@clerk/themes';
 import {
   Activity as ActivityIcon, ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays,
   Check, CircleDollarSign, ClipboardList, Download, FileText, HandCoins, HeartHandshake,
@@ -10,16 +7,19 @@ import {
 } from 'lucide-react';
 import {
   getGetActivityQueryKey, getGetDashboardQueryKey, getGetPartnerLedgerQueryKey,
-  getGetReceiptQueryKey, getGetReportsQueryKey, getListActivitiesQueryKey, getListCategoriesQueryKey,
+  getGetReportsQueryKey, getListActivitiesQueryKey, getListCategoriesQueryKey,
   getListMovementsQueryKey, getListPartnersQueryKey, getExportMovementsCsvQueryKey,
   useCancelActivity, useCreateActivity, useCreateCategory, useCreateMovement, useCreatePartner,
   useDuplicateActivity, useExportMovementsCsv, useGetActivity, useGetDashboard, useGetPartnerLedger,
-  useGetReceipt, useGetReports, useHealthCheck, useListActivities, useListCategories,
-  useListMovements, useListPartners, useRequestReceiptUploadUrl, useUpdateActivity,
+  useGetReports, useHealthCheck, useListActivities, useListCategories,
+  useListMovements, useListPartners, useUpdateActivity,
   useUpdateMovement, useUpdatePartner, useVoidMovement,
+} from '@/lib/use-sheet';
+import {
+  clearSession, readSession, saveSession, sheet,
   type Activity, type ActivityInput, type Category, type Movement, type MovementInput,
-  type Partner, type PartnerInput,
-} from '@workspace/api-client-react';
+  type Partner, type PartnerInput, type Session,
+} from '@/lib/sheet';
 import {
   Link, Redirect, Route, Switch, useLocation, Router as WouterRouter,
 } from 'wouter';
@@ -29,10 +29,58 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const stripBase = (path: string) => basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
+
+const SessionContext = createContext<{
+  session: Session | null;
+  signIn: (user: string, password: string) => Promise<void>;
+  signOut: () => void;
+} | null>(null);
+
+function useSession() {
+  const value = useContext(SessionContext);
+  if (!value) throw new Error('La sesión no está disponible.');
+  return value;
+}
+
+function SessionProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(() => readSession());
+  const signIn = async (user: string, password: string) => {
+    const next = { user: user.trim(), password };
+    await sheet('login', {}, next);
+    saveSession(next);
+    setSession(next);
+  };
+  const signOut = () => {
+    clearSession();
+    setSession(null);
+    queryClient.clear();
+  };
+  return <SessionContext.Provider value={{ session, signIn, signOut }}>{children}</SessionContext.Provider>;
+}
+
+function useHashLocation(): [string, (to: string, options?: { replace?: boolean }) => void] {
+  const read = () => {
+    const hash = window.location.hash.replace(/^#/, '');
+    return hash.startsWith('/') ? hash : '/';
+  };
+  const [location, setLocationState] = useState(read);
+  useEffect(() => {
+    const onChange = () => setLocationState(read());
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+  const navigate = (to: string, options?: { replace?: boolean }) => {
+    const next = to.startsWith('/') ? to : `/${to}`;
+    if (options?.replace) window.history.replaceState(null, '', `#${next}`);
+    else window.location.hash = next;
+    setLocationState(next);
+  };
+  return [location, navigate];
+}
+
+function errorText(error: unknown) {
+  return error instanceof Error ? error.message : 'No se pudo completar la operación.';
+}
 const currency = (amount: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(Number(amount || 0));
 const shortDate = (date?: string | null) => date ? new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(`${date.slice(0, 10)}T12:00:00`)) : '—';
 const longDate = (date?: string | null) => date ? new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${date.slice(0, 10)}T12:00:00`)) : '—';
@@ -48,46 +96,9 @@ const typeLabels: Record<string, string> = {
   meeting: 'Reunión', maintenance: 'Mantenimiento', other: 'Otro',
 };
 
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: 'clerk',
-  options: { logoPlacement: 'inside' as const, logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${basePath}/logo.svg` },
-  variables: {
-    colorPrimary: '#A47C55', colorForeground: '#252522', colorMutedForeground: '#706E67',
-    colorDanger: '#A65D48', colorBackground: '#FCFAF5', colorInput: '#FCFAF5',
-    colorInputForeground: '#252522', colorNeutral: '#D9D2C6', fontFamily: 'DM Sans',
-    borderRadius: '0.55rem',
-  },
-  elements: {
-    rootBox: 'w-full flex justify-center',
-    cardBox: 'bg-[#FCFAF5] rounded-xl w-[440px] max-w-full overflow-hidden',
-    card: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle: 'text-[#252522] font-medium',
-    headerSubtitle: 'text-[#706E67]',
-    socialButtonsBlockButtonText: 'text-[#252522]',
-    formFieldLabel: 'text-[#45443F]',
-    footerActionLink: 'text-[#8B6442]',
-    footerActionText: 'text-[#706E67]',
-    dividerText: 'text-[#706E67]',
-    identityPreviewEditButton: 'text-[#8B6442]',
-    formFieldSuccessText: 'text-[#66745A]',
-    alertText: 'text-[#904C3D]',
-    logoBox: 'mx-auto',
-    logoImage: 'max-h-9',
-    socialButtonsBlockButton: 'border-[#D9D2C6] bg-[#FCFAF5]',
-    formButtonPrimary: 'bg-[#30302D] hover:bg-[#484740] text-[#FCFAF5]',
-    formFieldInput: 'border-[#D9D2C6] bg-[#FCFAF5] text-[#252522]',
-    footerAction: 'border-t border-[#E7E1D7]',
-    dividerLine: 'bg-[#D9D2C6]',
-    alert: 'bg-[#F8EEE9]',
-    otpCodeFieldInput: 'border-[#D9D2C6] bg-[#FCFAF5]',
-    formFieldRow: 'gap-y-1',
-    main: 'gap-y-4',
-  },
-};
-
 function Home() {
+  const { session } = useSession();
+  if (session) return <Redirect to="/inicio" />;
   return <div className="landing">
     <nav className="landing-nav">
       <Brand />
@@ -120,56 +131,44 @@ function Brand() {
 }
 
 function SignInPage() {
+  const { signIn } = useSession();
+  const [, setLocation] = useLocation();
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  async function submit(form: HTMLFormElement) {
+    const data = new FormData(form);
+    setPending(true);
+    setError('');
+    try {
+      await signIn(String(data.get('user') || ''), String(data.get('password') || ''));
+      setLocation('/inicio');
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setPending(false);
+    }
+  }
   return <div className="auth-screen">
     <aside className="auth-aside"><Brand /><div><div className="eyebrow">Bienvenido de nuevo</div><h1>Todo lo que sostiene el espacio, en su sitio.</h1><p>Agenda, movimientos y acuerdos de equipo, con claridad para volver a lo importante.</p></div><span className="eyebrow">Espacio Vergara · Uso interno</span></aside>
-    <div className="auth-form-side"><div className="auth-card"><Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link><div style={{ height: 28 }} /><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div></div>
+    <div className="auth-form-side"><div className="auth-card">
+      <Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link>
+      <div style={{ height: 28 }} />
+      <h2>Qué bueno verte</h2>
+      <p>Entrá con el usuario y la contraseña del espacio.</p>
+      <form onSubmit={event => { event.preventDefault(); void submit(event.currentTarget); }} style={{ display: 'grid', gap: 12 }}>
+        <Field label="Usuario"><input className="field" name="user" required autoComplete="username" data-testid="input-user" /></Field>
+        <Field label="Contraseña"><input className="field" name="password" type="password" required autoComplete="current-password" data-testid="input-password" /></Field>
+        {error && <div className="error-note">{error}</div>}
+        <button className="button button-primary" disabled={pending} data-testid="button-sign-in">{pending ? 'Entrando…' : 'Entrar'}</button>
+      </form>
+    </div></div>
   </div>;
-}
-
-function SignUpPage() {
-  return <div className="auth-screen">
-    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Acceso del equipo</div><h1>Un espacio cuidado empieza por quienes lo cuidan.</h1><p>Las nuevas cuentas requieren aprobación del equipo administrador.</p></div><span className="eyebrow">Espacio Vergara · Uso interno</span></aside>
-    <div className="auth-form-side"><div className="auth-card"><Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link><div style={{ height: 28 }} /><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div></div>
-  </div>;
-}
-
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const qc = useQueryClient();
-  useEffect(() => {
-    let previous: string | null | undefined;
-    return addListener(({ user }) => {
-      const next = user?.id ?? null;
-      if (previous !== undefined && previous !== next) qc.clear();
-      previous = next;
-    });
-  }, [addListener, qc]);
-  return null;
-}
-
-function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
-  return <ClerkProvider
-    publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance}
-    signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`}
-    localization={{
-      signIn: { start: { title: 'Qué bueno verte', subtitle: 'Accede al espacio de trabajo de Vergara' } },
-      signUp: { start: { title: 'Pide acceso al equipo', subtitle: 'Las cuentas están reservadas al equipo administrador' } },
-    }}
-    routerPush={(to) => setLocation(stripBase(to))}
-    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-  >
-    <ClerkQueryClientCacheInvalidator />
-    <AppRoutes />
-  </ClerkProvider>;
 }
 
 function AppRoutes() {
-  const { isSignedIn } = useUser();
   return <Switch>
     <Route path="/sign-in/*?" component={SignInPage} />
-    <Route path="/sign-up/*?" component={SignUpPage} />
-    <Route path="/"><>{isSignedIn ? <Redirect to="/inicio" /> : <Home />}</></Route>
+    <Route path="/" component={Home} />
     <Route path="/inicio"><Protected><AppShell page="inicio"><DashboardPage /></AppShell></Protected></Route>
     <Route path="/agenda"><Protected><AppShell page="agenda"><AgendaPage /></AppShell></Protected></Route>
     <Route path="/movimientos"><Protected><AppShell page="movimientos"><MovementsPage /></AppShell></Protected></Route>
@@ -181,7 +180,9 @@ function AppRoutes() {
 }
 
 function Protected({ children }: { children: ReactNode }) {
-  return <><Show when="signed-in">{children}</Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+  const { session } = useSession();
+  if (!session) return <Redirect to="/" />;
+  return <>{children}</>;
 }
 
 const navItems = [
@@ -193,11 +194,10 @@ const navItems = [
 ];
 
 function AppShell({ page, children }: { page: string; children: ReactNode }) {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { session, signOut } = useSession();
   const [, setLocation] = useLocation();
-  const { data: health } = useHealthCheck();
-  const initials = (user?.firstName?.[0] || user?.primaryEmailAddress?.emailAddress?.[0] || 'V').toUpperCase();
+  const { data: health, isError: healthError } = useHealthCheck();
+  const initials = (session?.user?.[0] || 'V').toUpperCase();
   return <div className="workspace">
     <div className="app-shell">
       <aside className="sidebar">
@@ -207,13 +207,13 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
         </nav></div>
         <div className="sidebar-bottom">
           <div className="venue-note"><strong>Una sola sala</strong>Agenda y finanzas del espacio, sin taquilla ni gestión de asistentes.</div>
-          <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{user?.firstName || 'Equipo Vergara'}<small>{health?.status === 'ok' ? 'Espacio conectado' : 'Equipo administrador'}</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => signOut({ redirectUrl: basePath || '/' })}><LogOut size={15} /></button></div>
+          <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{session?.user || 'Equipo Vergara'}<small>{health?.status === 'ok' ? 'Espacio conectado' : 'Equipo administrador'}</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button></div>
         </div>
       </aside>
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb"><span style={{ color: '#aaa69d' }}>Espacio Vergara</span><span style={{ padding: '0 8px' }}>/</span>{navItems.find(item => item.path === `/${page}`)?.label || 'Actividad'}</div>
-          <div className="topbar-right"><span className="today-chip">{new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}</span><span className="health-dot" data-testid="status-health" title={health?.status || 'Conectando'}><i /> Conectado</span></div>
+          <div className="topbar-right"><span className="today-chip">{new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}</span><span className="health-dot" data-testid="status-health" title={healthError ? 'Sin conexión' : 'Conectado'}><i /> {healthError ? 'Sin conexión' : 'Conectado'}</span></div>
         </header>
         {children}
       </main>
@@ -319,7 +319,7 @@ function AgendaPage() {
     {showForm && <Panel title="Añadir actividad" subtitle="Una nueva cita para el espacio"><form className="inline-form" onSubmit={e => { e.preventDefault(); submit(e.currentTarget); }}>
       <ActivityFields />
       <div className="form-actions"><button type="button" className="button" onClick={() => setShowForm(false)}>Cancelar</button><button className="button button-primary" disabled={createActivity.isPending} data-testid="button-save-activity">{createActivity.isPending ? 'Guardando…' : 'Guardar actividad'}</button></div>
-      {createActivity.isError && <div className="error-note" style={{ marginTop: 12 }}>No se pudo guardar la actividad.</div>}
+      {createActivity.isError && <div className="error-note" style={{ marginTop: 12 }}>{errorText(createActivity.error)}</div>}
     </form></Panel>}
     <Panel title="Actividades" subtitle={`${filtered.length} en la agenda`}>
       <div className="filterbar"><div style={{ position: 'relative' }}><Search size={14} style={{ position: 'absolute', left: 11, top: 12, color: '#89867e' }} /><input className="field search-field" style={{ paddingLeft: 32 }} placeholder="Buscar actividad" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-activities" /></div><select className="select-field" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} data-testid="select-activity-status"><option value="all">Todos los estados</option><option value="scheduled">Programadas</option><option value="completed">Realizadas</option><option value="cancelled">Canceladas</option></select></div>
@@ -366,27 +366,11 @@ function MovementsPage() {
   const create = useCreateMovement();
   const update = useUpdateMovement();
   const voidMovement = useVoidMovement();
-  const uploadUrl = useRequestReceiptUploadUrl();
   const createCategory = useCreateCategory();
-  const [receiptPath, setReceiptPath] = useState('');
-  const [uploading, setUploading] = useState(false);
   const refresh = () => { void qc.invalidateQueries({ queryKey: getListMovementsQueryKey() }); void qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); void qc.invalidateQueries({ queryKey: getListPartnersQueryKey() }); };
   const filtered = (query.data || []).filter(m => (kind === 'all' || m.type === kind) && `${m.concept} ${m.partnerName || ''} ${m.activityName || ''}`.toLowerCase().includes(search.toLowerCase()));
-  const openNew = () => { setEditing(null); setReceiptPath(''); setShowForm(true); };
-  const editMovement = (movement: Movement) => { setEditing(movement); setReceiptPath(movement.receiptPath || ''); setShowForm(true); };
-  async function handleFile(file?: File) {
-    if (!file) return;
-    const supported = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!supported.includes(file.type) || file.size > 10 * 1024 * 1024) { window.alert('Usa un PDF o una imagen de hasta 10 MB.'); return; }
-    setUploading(true);
-    try {
-      const signed = await uploadUrl.mutateAsync({ data: { name: file.name, size: file.size, contentType: file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf' } });
-      const response = await fetch(signed.uploadURL, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-      if (!response.ok) throw new Error('upload');
-      setReceiptPath(signed.objectPath);
-    } catch { window.alert('No se pudo subir el justificante. Vuelve a intentarlo.'); }
-    finally { setUploading(false); }
-  }
+  const openNew = () => { setEditing(null); setShowForm(true); };
+  const editMovement = (movement: Movement) => { setEditing(movement); setShowForm(true); };
   function submitMovement(form: HTMLFormElement) {
     const fd = new FormData(form);
     const type = String(fd.get('type')) as MovementInput['type'];
@@ -395,7 +379,7 @@ function MovementsPage() {
       amount: Number(fd.get('amount')), categoryId: fd.get('categoryId') ? Number(fd.get('categoryId')) : null,
       activityId: fd.get('activityId') ? Number(fd.get('activityId')) : null,
       partnerId: ['partner_contribution', 'partner_expense', 'reimbursement'].includes(type) && fd.get('partnerId') ? Number(fd.get('partnerId')) : null,
-      receiptPath: receiptPath || null, notes: String(fd.get('notes') || '') || null,
+      notes: String(fd.get('notes') || '') || null,
     };
     if (editing) update.mutate({ id: editing.id, data: payload }, { onSuccess: () => { refresh(); setShowForm(false); } });
     else create.mutate({ data: payload }, { onSuccess: () => { refresh(); setShowForm(false); } });
@@ -416,9 +400,8 @@ function MovementsPage() {
           <button type="button" className="button" disabled={!newCategory.trim() || createCategory.isPending} onClick={() => createCategory.mutate({ data: { name: newCategory.trim(), appliesTo: categoryAppliesTo } }, { onSuccess: () => { void qc.invalidateQueries({ queryKey: getListCategoriesQueryKey() }); setNewCategory(''); setShowCategoryForm(false); } })} data-testid="button-save-category">{createCategory.isPending ? 'Guardando…' : 'Guardar categoría'}</button>
         </div>}
         <MovementFields movement={editing || undefined} categories={categoriesQuery.data || []} partners={partnersQuery.data || []} activities={activitiesQuery.data || []} />
-        <div className="form-field full" style={{ marginTop: 13 }}><label>Justificante · PDF o imagen (máx. 10 MB)</label><input className="field" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e => void handleFile(e.target.files?.[0])} data-testid="input-receipt" />{uploading && <small>Subiendo directamente a almacenamiento seguro…</small>}{receiptPath && <small style={{ color: '#66745a' }}>Justificante preparado.</small>}</div>
-        <div className="form-actions"><button type="button" className="button" onClick={() => setShowForm(false)}>Cancelar</button><button className="button button-primary" disabled={create.isPending || update.isPending || uploading} data-testid="button-save-movement">{create.isPending || update.isPending ? 'Guardando…' : 'Guardar movimiento'}</button></div>
-        {(create.isError || update.isError) && <div className="error-note" style={{ marginTop: 12 }}>No se pudo guardar el movimiento.</div>}
+        <div className="form-actions"><button type="button" className="button" onClick={() => setShowForm(false)}>Cancelar</button><button className="button button-primary" disabled={create.isPending || update.isPending} data-testid="button-save-movement">{create.isPending || update.isPending ? 'Guardando…' : 'Guardar movimiento'}</button></div>
+        {(create.isError || update.isError) && <div className="error-note" style={{ marginTop: 12 }}>{errorText(create.error || update.error)}</div>}
       </form>
     </Panel>}
     <Panel title="Registro" subtitle={`${filtered.length} movimientos`}>
@@ -427,7 +410,7 @@ function MovementsPage() {
         <select className="select-field" value={kind} onChange={e => setKind(e.target.value)} data-testid="select-movement-type"><option value="all">Todos los tipos</option>{Object.keys(typeLabels).slice(0, 5).map(type => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>
         <label style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#706e67', fontSize: 11 }}><input type="checkbox" checked={includeVoided} onChange={e => setIncludeVoided(e.target.checked)} data-testid="checkbox-include-voided" /> Mostrar anulados</label>
       </div>
-      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / socio</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.partnerName}</div>}</td><td className={`amount ${['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{currency(m.amount)}</td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.receiptPath && <ReceiptLink path={m.receiptPath} compact />}{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="El registro está despejado" detail="Añade el primer movimiento para llevar las cuentas del espacio." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
+      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / socio</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.partnerName}</div>}</td><td className={`amount ${['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{currency(m.amount)}</td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="El registro está despejado" detail="Añade el primer movimiento para llevar las cuentas del espacio." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
     </Panel>
   </div>;
 }
@@ -449,19 +432,6 @@ function MovementFields({ movement, categories, partners, activities }: { moveme
     {type === 'partner_contribution' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El aporte se registra en el ledger del socio; no se suma a los ingresos operativos.</div>}
     {type === 'reimbursement' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El reintegro reduce la deuda con el socio; no se contabiliza como gasto.</div>}
   </div>;
-}
-
-function ReceiptLink({ path, compact = false }: { path: string; compact?: boolean }) {
-  const receiptQuery = useGetReceipt({ path }, { query: { queryKey: getGetReceiptQueryKey({ path }), enabled: !!path } });
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    if (!receiptQuery.data) return;
-    const next = URL.createObjectURL(receiptQuery.data);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [receiptQuery.data]);
-  if (!url) return <span title="Cargando justificante" style={{ color: '#aaa69d', padding: 6 }}><Receipt size={14} /></span>;
-  return <a className={`button ${compact ? 'icon-button' : ''}`} href={url} target="_blank" rel="noreferrer" title="Abrir justificante" aria-label="Abrir justificante" data-testid={`link-receipt-${encodeURIComponent(path)}`}><Receipt size={14} />{compact ? null : 'Ver justificante'}</a>;
 }
 
 function PartnersPage() {
@@ -608,8 +578,7 @@ function useActivityParams() {
 }
 
 function App() {
-  if (!clerkPubKey) throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><ErrorBoundary resetKey={window.location.pathname}><ClerkProviderWithRoutes /></ErrorBoundary></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><SessionProvider><TooltipProvider><WouterRouter hook={useHashLocation}><ErrorBoundary resetKey={window.location.pathname}><AppRoutes /></ErrorBoundary></WouterRouter><Toaster /></TooltipProvider></SessionProvider></QueryClientProvider>;
 }
 
 export default App;
