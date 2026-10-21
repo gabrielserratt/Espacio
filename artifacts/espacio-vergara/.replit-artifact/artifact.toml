@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Espacio Vergara"
+description = "Aplicación privada de gestión para el equipo de Espacio Vergara: agenda de actividades, ingresos y gastos, saldos con socios e informes con datos persistentes."
+version = "1.0.0"
+id = "artifacts/espacio-vergara"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19652
+
+[services.development]
+run = "pnpm --filter @workspace/espacio-vergara run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/espacio-vergara", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/espacio-vergara/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19652"
+BASE_PATH = "/"

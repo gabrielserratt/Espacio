@@ -10,6 +10,16 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard summaries
+  - name: partners
+    description: Partner records and balances
+  - name: activities
+    description: Cultural activities and calendar
+  - name: movements
+    description: Operating movements and partner transactions
+  - name: reports
+    description: Financial reports and exports
 paths:
   /healthz:
     get:
@@ -24,8 +34,679 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard totals and recent activity
+      responses:
+        "200":
+          description: Dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /partners:
+    get:
+      operationId: listPartners
+      tags: [partners]
+      summary: List partners and current balances
+      responses:
+        "200":
+          description: Partners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Partner"
+    post:
+      operationId: createPartner
+      tags: [partners]
+      summary: Create a partner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerInput"
+      responses:
+        "201":
+          description: Created partner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Partner"
+  /partners/{id}:
+    patch:
+      operationId: updatePartner
+      tags: [partners]
+      summary: Update partner details
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerUpdate"
+      responses:
+        "200":
+          description: Updated partner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Partner"
+        "404":
+          description: Partner not found
+  /partners/{id}/ledger:
+    get:
+      operationId: getPartnerLedger
+      tags: [partners]
+      summary: Get a partner's contribution, expense and reimbursement history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Partner ledger
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerLedger"
+        "404":
+          description: Partner not found
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [activities]
+      summary: List activities in a date range
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Create an activity, optionally repeating it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityInput"
+      responses:
+        "201":
+          description: Created activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+  /activities/{id}:
+    get:
+      operationId: getActivity
+      tags: [activities]
+      summary: Get activity details and related financial movements
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Activity details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityDetail"
+        "404":
+          description: Activity not found
+    patch:
+      operationId: updateActivity
+      tags: [activities]
+      summary: Update activity details
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityUpdate"
+      responses:
+        "200":
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "404":
+          description: Activity not found
+  /activities/{id}/duplicate:
+    post:
+      operationId: duplicateActivity
+      tags: [activities]
+      summary: Duplicate an activity on a new date
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityDuplicateInput"
+      responses:
+        "201":
+          description: Duplicated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "404":
+          description: Activity not found
+  /activities/{id}/cancel:
+    post:
+      operationId: cancelActivity
+      tags: [activities]
+      summary: Cancel an activity without deleting its history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Cancelled activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "404":
+          description: Activity not found
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [movements]
+      summary: List movement categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [movements]
+      summary: Add a custom movement category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+  /movements:
+    get:
+      operationId: listMovements
+      tags: [movements]
+      summary: List movements with optional filters
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/MovementType"
+        - name: includeVoided
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Movements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Movement"
+    post:
+      operationId: createMovement
+      tags: [movements]
+      summary: Record one operating or partner movement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovementInput"
+      responses:
+        "201":
+          description: Created movement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movement"
+  /movements/{id}:
+    patch:
+      operationId: updateMovement
+      tags: [movements]
+      summary: Update a movement while preserving its change history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovementUpdate"
+      responses:
+        "200":
+          description: Updated movement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movement"
+        "404":
+          description: Movement not found
+  /movements/{id}/void:
+    post:
+      operationId: voidMovement
+      tags: [movements]
+      summary: Void a movement while retaining it in the audit history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoidMovementInput"
+      responses:
+        "200":
+          description: Voided movement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movement"
+        "404":
+          description: Movement not found
+  /reports:
+    get:
+      operationId: getReports
+      tags: [reports]
+      summary: Get financial reports for a date range
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Financial reports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reports"
+  /reports/export.csv:
+    get:
+      operationId: exportMovementsCsv
+      tags: [reports]
+      summary: Export movements as CSV
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+  /storage/uploads/request-url:
+    post:
+      operationId: requestReceiptUploadUrl
+      tags: [movements]
+      summary: Request a signed upload URL for a private receipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiptUploadInput"
+      responses:
+        "200":
+          description: Signed upload destination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceiptUpload"
+  /storage/objects:
+    get:
+      operationId: getReceipt
+      tags: [movements]
+      summary: Serve a private receipt to an authorized administrator
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Receipt file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Receipt not found
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
   schemas:
+    Partner:
+      type: object
+      required: [id, name, email, phone, notes, totalContributed, directExpenses, reimbursements, balanceDue, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        totalContributed: { type: number }
+        directExpenses: { type: number }
+        reimbursements: { type: number }
+        balanceDue: { type: number }
+        createdAt: { type: string, format: date-time }
+    PartnerInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    PartnerUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    PartnerLedger:
+      type: object
+      required: [partner, movements]
+      properties:
+        partner: { $ref: "#/components/schemas/Partner" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/Movement" }
+    ActivityType:
+      type: string
+      enum: [event, class, workshop, rehearsal, meeting, maintenance, other]
+    ActivityStatus:
+      type: string
+      enum: [scheduled, completed, cancelled]
+    Activity:
+      type: object
+      required: [id, name, type, date, startTime, endTime, responsible, status, description, notes, pendingTasks, recurrenceGroup, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { $ref: "#/components/schemas/ActivityType" }
+        date: { type: string, format: date }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        responsible: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/ActivityStatus" }
+        description: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        pendingTasks:
+          type: array
+          items: { type: string }
+        recurrenceGroup: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    ActivityDetail:
+      type: object
+      required: [activity, movements, incomeTotal, expenseTotal, result]
+      properties:
+        activity: { $ref: "#/components/schemas/Activity" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/Movement" }
+        incomeTotal: { type: number }
+        expenseTotal: { type: number }
+        result: { type: number }
+    ActivityInput:
+      type: object
+      required: [name, type, date]
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { $ref: "#/components/schemas/ActivityType" }
+        date: { type: string, format: date }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        responsible: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/ActivityStatus" }
+        description: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        pendingTasks:
+          type: array
+          items: { type: string }
+        recurrence: { type: string, enum: [none, weekly, biweekly, monthly] }
+        recurrenceCount: { type: integer, minimum: 1, maximum: 24 }
+    ActivityUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { $ref: "#/components/schemas/ActivityType" }
+        date: { type: string, format: date }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        responsible: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/ActivityStatus" }
+        description: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        pendingTasks:
+          type: array
+          items: { type: string }
+    ActivityDuplicateInput:
+      type: object
+      required: [date]
+      properties:
+        date: { type: string, format: date }
+    MovementType:
+      type: string
+      enum: [income, expense, partner_contribution, partner_expense, reimbursement]
+    Movement:
+      type: object
+      required: [id, type, date, concept, amount, categoryId, categoryName, activityId, activityName, partnerId, partnerName, receiptPath, notes, status, voidReason, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        type: { $ref: "#/components/schemas/MovementType" }
+        date: { type: string, format: date }
+        concept: { type: string }
+        amount: { type: number }
+        categoryId: { type: ["integer", "null"] }
+        categoryName: { type: ["string", "null"] }
+        activityId: { type: ["integer", "null"] }
+        activityName: { type: ["string", "null"] }
+        partnerId: { type: ["integer", "null"] }
+        partnerName: { type: ["string", "null"] }
+        receiptPath: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        status: { type: string, enum: [active, voided] }
+        voidReason: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    MovementInput:
+      type: object
+      required: [type, date, concept, amount]
+      properties:
+        type: { $ref: "#/components/schemas/MovementType" }
+        date: { type: string, format: date }
+        concept: { type: string, minLength: 1 }
+        amount: { type: number, exclusiveMinimum: 0 }
+        categoryId: { type: ["integer", "null"] }
+        activityId: { type: ["integer", "null"] }
+        partnerId: { type: ["integer", "null"] }
+        receiptPath: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    MovementUpdate:
+      type: object
+      properties:
+        type: { $ref: "#/components/schemas/MovementType" }
+        date: { type: string, format: date }
+        concept: { type: string, minLength: 1 }
+        amount: { type: number, exclusiveMinimum: 0 }
+        categoryId: { type: ["integer", "null"] }
+        activityId: { type: ["integer", "null"] }
+        partnerId: { type: ["integer", "null"] }
+        receiptPath: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    VoidMovementInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
+    Category:
+      type: object
+      required: [id, name, appliesTo, isDefault]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        appliesTo: { type: string, enum: [income, expense, both] }
+        isDefault: { type: boolean }
+    CategoryInput:
+      type: object
+      required: [name, appliesTo]
+      properties:
+        name: { type: string, minLength: 1 }
+        appliesTo: { type: string, enum: [income, expense, both] }
+    Dashboard:
+      type: object
+      required: [monthIncome, monthExpenses, monthResult, accumulatedResult, partnerDebt, upcomingActivities, recentMovements]
+      properties:
+        monthIncome: { type: number }
+        monthExpenses: { type: number }
+        monthResult: { type: number }
+        accumulatedResult: { type: number }
+        partnerDebt: { type: number }
+        upcomingActivities:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+        recentMovements:
+          type: array
+          items: { $ref: "#/components/schemas/Movement" }
+    Reports:
+      type: object
+      required: [incomeTotal, expenseTotal, result, generalExpenses, expensesByCategory, activities, partners, debtHistory]
+      properties:
+        incomeTotal: { type: number }
+        expenseTotal: { type: number }
+        result: { type: number }
+        generalExpenses: { type: number }
+        expensesByCategory:
+          type: array
+          items: { $ref: "#/components/schemas/ReportCategory" }
+        activities:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityResult" }
+        partners:
+          type: array
+          items: { $ref: "#/components/schemas/Partner" }
+        debtHistory:
+          type: array
+          items: { $ref: "#/components/schemas/DebtPoint" }
+    ReportCategory:
+      type: object
+      required: [categoryName, amount]
+      properties:
+        categoryName: { type: string }
+        amount: { type: number }
+    ActivityResult:
+      type: object
+      required: [activityId, activityName, date, income, expense, result]
+      properties:
+        activityId: { type: integer }
+        activityName: { type: string }
+        date: { type: string, format: date }
+        income: { type: number }
+        expense: { type: number }
+        result: { type: number }
+    DebtPoint:
+      type: object
+      required: [date, amount]
+      properties:
+        date: { type: string, format: date }
+        amount: { type: number }
+    ReceiptUploadInput:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp, application/pdf] }
+    ReceiptUpload:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
     HealthStatus:
       type: object
       properties:

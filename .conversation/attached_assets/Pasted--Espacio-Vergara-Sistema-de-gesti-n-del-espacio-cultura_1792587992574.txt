@@ -1,0 +1,223 @@
+# Espacio Vergara — Sistema de gestión del espacio cultural
+
+Desarrollá una aplicación web para la gestión interna de **Espacio Vergara**, un espacio cultural pequeño administrado por un grupo reducido de personas.
+
+La aplicación será de uso exclusivo de los administradores. No necesita una web pública, venta de entradas ni acceso para visitantes.
+
+El objetivo es centralizar la agenda, los ingresos, los gastos y los movimientos con los socios, con la menor carga administrativa posible.
+
+## 1. Identidad visual y diseño de interfaz
+
+Diseñá una interfaz que transmita la identidad de Espacio Vergara: **cultural, cálida, contemporánea, minimalista y sobria**.
+
+La estética debe combinar la calidez de los materiales naturales con la claridad de una herramienta de gestión moderna.
+
+### Paleta de colores
+
+Utilizar una paleta consistente basada en:
+
+- **Marfil:** fondo principal de la aplicación, cálido y ligeramente apagado, evitando el blanco puro.
+- **Negro carbón:** textos principales, navegación y elementos de mayor jerarquía.
+- **Gris oscuro:** superficies secundarias, bordes destacados y elementos de navegación.
+- **Madera natural:** acentos discretos en tonos roble, nogal claro o madera tostada.
+- **Gris cálido:** divisores, fondos alternativos y textos secundarios.
+
+Como punto de partida, usar estos colores:
+
+| Uso | Color | Código |
+|---|---|---|
+| Fondo principal | Marfil | `#F5F1E8` |
+| Superficies y tarjetas | Marfil claro | `#FCFAF5` |
+| Texto principal | Negro carbón | `#252522` |
+| Navegación | Gris carbón | `#30302D` |
+| Acento cálido | Madera tostada | `#A47C55` |
+| Bordes y divisores | Gris cálido | `#D9D2C6` |
+| Texto secundario | Gris pizarra | `#706E67` |
+| Indicador positivo | Verde oliva apagado | `#66745A` |
+| Indicador de alerta | Terracota discreto | `#A65D48` |
+
+Los colores deben tener buen contraste y utilizarse de forma consistente. Los indicadores financieros positivos y negativos deben ser claros, pero sin colores estridentes.
+
+### Estilo visual
+
+- Diseño minimalista, editorial y contemporáneo.
+- Inspiración en estudios de arquitectura, galerías de arte y espacios culturales independientes.
+- Tipografía sans serif limpia y legible, con una personalidad discreta.
+- Jerarquía visual clara, con títulos sobrios y números financieros fáciles de leer.
+- Espaciado generoso, alineación consistente y componentes simples.
+- Bordes finos y discretos; radios moderados, sin abusar de las tarjetas redondeadas.
+- Sombras mínimas o inexistentes.
+- Iconografía lineal y uniforme.
+- Tablas ordenadas, legibles y sin exceso de líneas.
+- Botones sobrios, con estados hover, focus y disabled bien definidos.
+
+La madera debe aparecer únicamente como inspiración cromática y en pequeños detalles visuales. No utilizar texturas de madera como fondo de toda la aplicación.
+
+Evitar:
+- Gradientes llamativos.
+- Colores saturados.
+- Estética de dashboard SaaS genérico.
+- Exceso de tarjetas, sombras o elementos decorativos.
+- Emojis como iconos de navegación.
+- Fotografías de stock innecesarias.
+- Efectos visuales que dificulten la lectura o ralenticen la aplicación.
+
+### Marca y navegación
+
+Utilizar **Espacio Vergara** como nombre visible de la aplicación.
+
+En la navegación lateral, mostrar el nombre con un tratamiento tipográfico sobrio. Se puede utilizar un pequeño elemento gráfico geométrico como identificador, sin crear un logotipo complejo.
+
+La navegación debe tener fondo gris carbón, texto marfil y estados activos discretos que utilicen el tono madera.
+
+En escritorio, usar una barra lateral fija y una zona de contenido amplia. En dispositivos móviles, convertir la navegación en un menú compacto y accesible.
+
+### Componentes y estados
+
+Aplicar la misma identidad visual a:
+
+- Formularios.
+- Calendario y actividades.
+- Tablas de movimientos.
+- Fichas de socios.
+- Indicadores financieros.
+- Gráficos e informes.
+- Ventanas de confirmación.
+- Mensajes de éxito, error y advertencia.
+- Selectores, filtros y botones.
+
+Los formularios deben priorizar la legibilidad y la velocidad de carga. Utilizar etiquetas visibles, campos de tamaño adecuado y validaciones claras.
+
+El calendario debe diferenciar los tipos de actividades mediante tonos suaves y consistentes, sin convertir cada evento en una etiqueta de color estridente.
+
+Los gráficos deben usar principalmente negro, grises, marfil y acentos de madera. Reservar el verde oliva y el terracota para los estados financieros que lo requieran.
+
+Implementar una versión responsive y mantener la coherencia visual en todas las pantallas.
+
+## 2. Principio funcional
+
+Cada operación debe registrarse una sola vez. El sistema debe calcular saldos e informes automáticamente, sin obligar al usuario a vincular manualmente información que no aporte valor.
+
+Priorizar una experiencia de uso sencilla para un equipo pequeño. La aplicación debe permitir registrar operaciones cotidianas en pocos segundos.
+
+## 3. Módulos de la aplicación
+
+La navegación principal debe incluir:
+
+1. Inicio.
+2. Agenda.
+3. Movimientos.
+4. Socios.
+5. Informes.
+
+### Inicio
+
+Mostrar:
+- Ingresos del mes.
+- Gastos del mes.
+- Resultado económico mensual y acumulado.
+- Deuda total con los socios.
+- Próximas actividades.
+- Últimos movimientos.
+
+Distinguir el resultado económico del dinero disponible. No mostrar un saldo de caja como dinero real si no se implementa un registro específico de caja y bancos.
+
+### Agenda
+
+El espacio cuenta actualmente con una sola sala. No desarrollar un sistema de múltiples ambientes.
+
+Implementar vistas mensual, semanal y diaria, con actividades de tipo evento, clase o taller, ensayo, reunión, mantenimiento y otros.
+
+Cada actividad debe permitir registrar nombre, tipo, fecha, horarios, responsable opcional, estado, descripción, notas y pendientes opcionales.
+
+Permitir crear, editar, duplicar y cancelar actividades, además de generar actividades recurrentes.
+
+Cada actividad debe tener una ficha que permita consultar sus ingresos, gastos y aportes asociados. La asociación de movimientos con actividades debe ser opcional cuando corresponda.
+
+No desarrollar venta de entradas ni control de asistentes.
+
+### Movimientos
+
+Crear un módulo único para ingresos y gastos.
+
+Cada movimiento debe incluir tipo, fecha, concepto, importe, categoría, actividad asociada opcional, comprobante opcional y observaciones.
+
+Distinguir los gastos de actividades de los gastos generales del espacio.
+
+Las categorías iniciales deben incluir difusión, artistas, sonido, insumos, alquiler, servicios, mantenimiento, equipamiento, administración y otros. Permitir personalizarlas.
+
+Los aportes de socios no deben contarse como ingresos operativos.
+
+### Socios
+
+Cada socio debe tener una ficha con total aportado, gastos cubiertos directamente, devoluciones, saldo pendiente e historial de movimientos.
+
+Permitir registrar:
+- Dinero aportado por un socio.
+- Gastos pagados directamente por un socio, con su comprobante.
+- Devoluciones efectuadas.
+
+Los gastos cubiertos por un socio deben generar un único gasto financiero y aumentar la deuda con ese socio. No duplicar el gasto en informes.
+
+Las devoluciones reducen la deuda y el dinero disponible, pero no generan nuevos gastos operativos.
+
+Cada movimiento debe tener un destino: una actividad o los gastos generales del espacio, cuando sea posible.
+
+### Informes
+
+Permitir consultar:
+- Ingresos y gastos por período.
+- Resultado económico mensual y acumulado.
+- Gastos por categoría.
+- Gastos generales del espacio.
+- Resultado de cada actividad.
+- Deuda pendiente por socio.
+- Historial de aportes, gastos cubiertos y devoluciones.
+- Evolución de la deuda total.
+
+Permitir exportar información a CSV o Excel.
+
+## 4. Datos, seguridad y persistencia
+
+Implementar una base de datos relacional persistente y relaciones consistentes entre socios, actividades, movimientos y comprobantes.
+
+No utilizar almacenamiento local del navegador como fuente principal de datos.
+
+Implementar autenticación para proteger el acceso administrativo y almacenamiento persistente de comprobantes.
+
+Mantener un historial controlado de modificaciones y anulaciones, evitando que se alteren los saldos de forma inconsistente.
+
+## 5. Reglas de negocio obligatorias
+
+1. Cada operación se registra una sola vez.
+2. Los gastos cubiertos por socios impactan una sola vez en el resultado económico.
+3. Los aportes de socios no son ingresos operativos.
+4. Las devoluciones reducen la deuda, pero no constituyen un gasto operativo.
+5. Los ingresos y gastos pueden asociarse a actividades sin que la relación sea obligatoria en todos los casos.
+6. Los informes se calculan a partir de los movimientos registrados.
+7. El resultado económico no equivale al saldo de caja.
+8. Las anulaciones deben conservar un historial y mantener la consistencia de los saldos.
+
+## 6. Forma de implementación
+
+Antes de programar, inspeccionar el proyecto y elegir una arquitectura sencilla, mantenible y compatible con Replit.
+
+Implementar una versión funcional de punta a punta, no solamente un prototipo visual.
+
+Orden sugerido:
+1. Base de datos y modelo de movimientos.
+2. Socios y cálculo de saldos.
+3. Ingresos y gastos.
+4. Agenda.
+5. Inicio e informes.
+6. Comprobantes, validaciones y pulido visual.
+
+Probar especialmente que un socio pueda comprar pintura con su dinero, adjuntar el ticket y registrar el gasto sin duplicarlo, aumentando correctamente la deuda.
+
+### Criterio final de calidad
+
+El resultado debe sentirse como una herramienta propia de Espacio Vergara: cálida, cuidada, moderna, sobria y fácil de usar.
+
+La identidad visual debe ser consistente en todas las pantallas, pero nunca debe imponerse sobre la funcionalidad.
+
+Priorizar la simplicidad, la velocidad de uso, la persistencia de los datos y la consistencia financiera antes de agregar funcionalidades nuevas.
