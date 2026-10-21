@@ -90,8 +90,8 @@ const monthRange = () => {
   return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10), to: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10) };
 };
 const typeLabels: Record<string, string> = {
-  income: 'Ingreso', expense: 'Gasto', partner_contribution: 'Aporte de socio',
-  partner_expense: 'Gasto pagado por socio', reimbursement: 'Reintegro',
+  income: 'Ingreso', expense: 'Gasto', partner_contribution: 'Aporte de la compañía',
+  partner_expense: 'Gasto pagado por la compañía', reimbursement: 'Reintegro',
   event: 'Evento', class: 'Clase', workshop: 'Taller', rehearsal: 'Ensayo',
   meeting: 'Reunión', maintenance: 'Mantenimiento', other: 'Otro',
 };
@@ -106,27 +106,27 @@ function Home() {
     </nav>
     <main className="landing-main">
       <div className="landing-copy">
-        <div className="landing-kicker">Espacio Vergara · Gestión interna</div>
-        <h1>La cultura<br />también necesita<br />un buen lugar.</h1>
-        <p>Una mesa de trabajo serena para cuidar la agenda, las cuentas y las personas que hacen posible este espacio.</p>
+        <div className="landing-kicker">Espacio Vergara · Uso interno</div>
+        <h1>Agenda, cuentas<br />y compañía.</h1>
+        <p>Para cargar lo de la sala y llevar las cuentas de la compañía.</p>
         <div className="landing-cta">
-          <Link href="/sign-in" className="button button-primary" data-testid="link-access">Acceder al espacio <ArrowRight size={15} /></Link>
-          <span style={{ color: '#89867e', fontSize: 11 }}>Solo para el equipo administrador</span>
+          <Link href="/sign-in" className="button button-primary" data-testid="link-access">Entrar <ArrowRight size={15} /></Link>
+          <span style={{ color: '#89867e', fontSize: 11 }}>Uso interno</span>
         </div>
       </div>
       <div className="landing-visual" aria-label="Ilustración abstracta de una sala" role="img">
         <div className="visual-frame" /><div className="visual-inner"><div className="visual-sun" /><div className="visual-floor" /></div>
-        <div className="visual-caption">UN ESPACIO · MUCHAS POSIBILIDADES</div>
+        <div className="visual-caption">USO INTERNO</div>
       </div>
     </main>
-    <footer className="landing-foot"><span>Un lugar para encontrarnos</span><span>Vergara · Cultura independiente</span><span>Gestión, sin ruido</span></footer>
+    <footer className="landing-foot"><span>Espacio Vergara</span><span>Gestión interna</span><span>Agenda · Cuentas · Compañía</span></footer>
   </div>;
 }
 
 function Brand() {
   return <Link href="/" className="brand" data-testid="link-brand">
     <span className="brand-mark"><ActivityIcon size={17} strokeWidth={1.5} /></span>
-    <span className="brand-name">Espacio Vergara<span className="brand-caption">Gestión cultural</span></span>
+    <span className="brand-name">Espacio Vergara<span className="brand-caption">Uso interno</span></span>
   </Link>;
 }
 
@@ -149,12 +149,12 @@ function SignInPage() {
     }
   }
   return <div className="auth-screen">
-    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Bienvenido de nuevo</div><h1>Todo lo que sostiene el espacio, en su sitio.</h1><p>Agenda, movimientos y acuerdos de equipo, con claridad para volver a lo importante.</p></div><span className="eyebrow">Espacio Vergara · Uso interno</span></aside>
+    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Ingreso</div><h1>Agenda, movimientos y compañía.</h1><p>Usuario y contraseña de la compañía.</p></div><span className="eyebrow">Uso interno</span></aside>
     <div className="auth-form-side"><div className="auth-card">
       <Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link>
       <div style={{ height: 28 }} />
-      <h2>Qué bueno verte</h2>
-      <p>Entrá con el usuario y la contraseña del espacio.</p>
+      <h2>Ingreso</h2>
+      <p>Usuario y contraseña de la compañía.</p>
       <form onSubmit={event => { event.preventDefault(); void submit(event.currentTarget); }} style={{ display: 'grid', gap: 12 }}>
         <Field label="Usuario"><input className="field" name="user" required autoComplete="username" data-testid="input-user" /></Field>
         <Field label="Contraseña"><input className="field" name="password" type="password" required autoComplete="current-password" data-testid="input-password" /></Field>
@@ -189,7 +189,7 @@ const navItems = [
   { path: '/inicio', label: 'Inicio', icon: LayoutDashboard },
   { path: '/agenda', label: 'Agenda', icon: CalendarDays },
   { path: '/movimientos', label: 'Movimientos', icon: CircleDollarSign },
-  { path: '/socios', label: 'Socios', icon: Users },
+  { path: '/socios', label: 'Compañía', icon: Users },
   { path: '/informes', label: 'Informes', icon: FileText },
 ];
 
@@ -202,11 +202,11 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <Brand />
-        <div><div className="nav-label">Espacio de trabajo</div><nav className="nav-list">
-          {navItems.map(item => <Link key={item.path} href={item.path} className={`nav-link ${page === item.label.toLowerCase() ? 'active' : ''}`} data-testid={`link-nav-${item.label.toLowerCase()}`}><item.icon size={16} strokeWidth={1.7} /><span>{item.label}</span></Link>)}
+          <div><div className="nav-label">Menú</div><nav className="nav-list">
+          {navItems.map(item => <Link key={item.path} href={item.path} className={`nav-link ${page === item.path.slice(1) ? 'active' : ''}`} data-testid={`link-nav-${item.path.slice(1)}`}><item.icon size={16} strokeWidth={1.7} /><span>{item.label}</span></Link>)}
         </nav></div>
         <div className="sidebar-bottom">
-          <div className="venue-note"><strong>Una sola sala</strong>Agenda y finanzas del espacio, sin taquilla ni gestión de asistentes.</div>
+          <div className="venue-note"><strong>Uso interno</strong>Agenda, movimientos y cuentas de la compañía.</div>
           <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{session?.user || 'Equipo Vergara'}<small>{health?.status === 'ok' ? 'Espacio conectado' : 'Equipo administrador'}</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button></div>
         </div>
       </aside>
@@ -218,7 +218,7 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
         {children}
       </main>
     </div>
-    <nav className="mobile-nav">{navItems.map(item => <Link key={item.path} href={item.path} className={page === item.label.toLowerCase() ? 'active' : ''} data-testid={`mobile-nav-${item.label.toLowerCase()}`}><item.icon size={17} /><span>{item.label}</span></Link>)}</nav>
+    <nav className="mobile-nav">{navItems.map(item => <Link key={item.path} href={item.path} className={page === item.path.slice(1) ? 'active' : ''} data-testid={`mobile-nav-${item.path.slice(1)}`}><item.icon size={17} /><span>{item.label}</span></Link>)}</nav>
   </div>;
 }
 
@@ -246,25 +246,25 @@ function DashboardPage() {
   const { data, isLoading, isError, refetch } = useGetDashboard();
   const month = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(new Date());
   return <div className="content">
-    <PageHeading eyebrow={`Vista general · ${month}`} title="Buenos días." description="Un vistazo claro a lo que ocurre en el espacio." />
+    <PageHeading eyebrow={`Resumen · ${month}`} title="Inicio" description="Ingresos, gastos y actividades del mes." />
     {isError && <QueryError retry={() => void refetch()} />}
     {isLoading ? <div className="metric-grid">{[1, 2, 3, 4].map(i => <div className="metric-card" key={i}><div className="skeleton" /><div className="skeleton" style={{ marginTop: 24, width: '65%', height: 25 }} /></div>)}</div> : data && <>
       <section className="metric-grid">
         <Metric label="Ingresos del mes" value={currency(data.monthIncome)} hint="Ingresos operativos" icon={ArrowDownLeft} />
         <Metric label="Gastos del mes" value={currency(data.monthExpenses)} hint="Gastos operativos" icon={ArrowUpRight} />
         <Metric label="Resultado del mes" value={currency(data.monthResult)} hint="Ingresos menos gastos" icon={Wallet} dark />
-        <Metric label="A devolver a socios" value={currency(data.partnerDebt)} hint="Deuda pendiente con el equipo" icon={HandCoins} />
+        <Metric label="A devolver" value={currency(data.partnerDebt)} hint="Saldo con la compañía" icon={HandCoins} />
       </section>
       <div style={{ color: '#89867e', fontSize: 11, margin: '-10px 0 22px' }}>Resultado económico; no representa el saldo de caja. Los aportes no son ingresos operativos.</div>
       <div className="dashboard-grid">
-        <Panel title="Próximas actividades" subtitle="Lo que viene en la sala" action={<Link href="/agenda" className="button button-quiet" data-testid="link-agenda-all">Ver agenda <ArrowRight size={13} /></Link>}>
-          <div className="panel-body">{data.upcomingActivities?.length ? data.upcomingActivities.slice(0, 5).map(activity => <ActivityRow key={activity.id} activity={activity} />) : <EmptyState title="La agenda está abierta" detail="Todavía no hay actividades próximas. Añade la siguiente para tenerla a mano." action={<Link href="/agenda" className="button" data-testid="link-add-activity-empty"><Plus size={14} /> Añadir actividad</Link>} />}</div>
+        <Panel title="Próximas actividades" subtitle="Lo cargado de acá en adelante" action={<Link href="/agenda" className="button button-quiet" data-testid="link-agenda-all">Ver agenda <ArrowRight size={13} /></Link>}>
+          <div className="panel-body">{data.upcomingActivities?.length ? data.upcomingActivities.slice(0, 5).map(activity => <ActivityRow key={activity.id} activity={activity} />) : <EmptyState title="Sin actividades próximas" detail="Cuando se cargue una, aparece acá." action={<Link href="/agenda" className="button" data-testid="link-add-activity-empty"><Plus size={14} /> Añadir actividad</Link>} />}</div>
         </Panel>
-        <Panel title="Últimos movimientos" subtitle="Registro reciente" action={<Link href="/movimientos" className="button button-quiet" data-testid="link-movements-all">Ver todos <ArrowRight size={13} /></Link>}>
-          <div className="panel-body">{data.recentMovements?.length ? data.recentMovements.slice(0, 5).map(movement => <MovementRow movement={movement} key={movement.id} />) : <EmptyState title="Sin movimientos aún" detail="Los ingresos y gastos registrados aparecerán aquí." />}</div>
+        <Panel title="Últimos movimientos" subtitle="Los más recientes" action={<Link href="/movimientos" className="button button-quiet" data-testid="link-movements-all">Ver todos <ArrowRight size={13} /></Link>}>
+          <div className="panel-body">{data.recentMovements?.length ? data.recentMovements.slice(0, 5).map(movement => <MovementRow movement={movement} key={movement.id} />) : <EmptyState title="Sin movimientos" detail="Los ingresos y gastos van a aparecer acá." />}</div>
         </Panel>
       </div>
-      <div className="panel" style={{ marginTop: 15, padding: '16px 20px', display: 'flex', gap: 13, alignItems: 'flex-start' }}><div className="empty-mark" style={{ margin: 0, flexShrink: 0 }}><HeartHandshake size={16} /></div><div><div style={{ fontSize: 13, fontWeight: 600 }}>Resultado acumulado</div><div style={{ font: '18px var(--app-font-mono)', marginTop: 6 }}>{currency(data.accumulatedResult)}</div><div style={{ fontSize: 10, color: '#89867e', marginTop: 4 }}>Balance económico acumulado. No equivale al efectivo disponible.</div></div></div>
+      <div className="panel" style={{ marginTop: 15, padding: '16px 20px', display: 'flex', gap: 13, alignItems: 'flex-start' }}><div className="empty-mark" style={{ margin: 0, flexShrink: 0 }}><HeartHandshake size={16} /></div><div><div style={{ fontSize: 13, fontWeight: 600 }}>Resultado acumulado</div><div style={{ font: '18px var(--app-font-mono)', marginTop: 6 }}>{currency(data.accumulatedResult)}</div><div style={{ fontSize: 10, color: '#89867e', marginTop: 4 }}>Del año. No es el dinero en caja.</div></div></div>
     </>}
   </div>;
 }
@@ -313,17 +313,17 @@ function AgendaPage() {
     createActivity.mutate({ data: payload }, { onSuccess: () => { refresh(); setShowForm(false); } });
   }
   return <div className="content">
-    <PageHeading eyebrow="Planificación" title="Agenda" description="Actividades y uso de la sala, sin perder detalle." >
+    <PageHeading eyebrow="Sala" title="Agenda" description="Actividades cargadas." >
       <button className="button button-primary" data-testid="button-new-activity" onClick={() => setShowForm(!showForm)}><Plus size={15} /> Nueva actividad</button>
     </PageHeading>
-    {showForm && <Panel title="Añadir actividad" subtitle="Una nueva cita para el espacio"><form className="inline-form" onSubmit={e => { e.preventDefault(); submit(e.currentTarget); }}>
+    {showForm && <Panel title="Añadir actividad" subtitle="Fecha, horario y responsable."><form className="inline-form" onSubmit={e => { e.preventDefault(); submit(e.currentTarget); }}>
       <ActivityFields />
       <div className="form-actions"><button type="button" className="button" onClick={() => setShowForm(false)}>Cancelar</button><button className="button button-primary" disabled={createActivity.isPending} data-testid="button-save-activity">{createActivity.isPending ? 'Guardando…' : 'Guardar actividad'}</button></div>
       {createActivity.isError && <div className="error-note" style={{ marginTop: 12 }}>{errorText(createActivity.error)}</div>}
     </form></Panel>}
     <Panel title="Actividades" subtitle={`${filtered.length} en la agenda`}>
       <div className="filterbar"><div style={{ position: 'relative' }}><Search size={14} style={{ position: 'absolute', left: 11, top: 12, color: '#89867e' }} /><input className="field search-field" style={{ paddingLeft: 32 }} placeholder="Buscar actividad" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-activities" /></div><select className="select-field" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} data-testid="select-activity-status"><option value="all">Todos los estados</option><option value="scheduled">Programadas</option><option value="completed">Realizadas</option><option value="cancelled">Canceladas</option></select></div>
-      {isLoading ? <LoadingRows /> : isError ? <div style={{ padding: 16 }}><QueryError retry={() => void refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Actividad</th><th>Tipo / responsable</th><th>Estado</th><th>Repetir en</th><th>Acciones</th></tr></thead><tbody>{filtered.map(activity => <tr key={activity.id} data-testid={`row-activity-${activity.id}`}><td>{longDate(activity.date)}{activity.startTime && <div style={{ color: '#89867e', marginTop: 4 }}>{activity.startTime}{activity.endTime ? `–${activity.endTime}` : ''}</div>}</td><td><Link href={`/actividades/${activity.id}`} style={{ color: '#34332e', fontWeight: 600, textDecoration: 'none' }}>{activity.name}</Link></td><td>{typeLabels[activity.type] || activity.type}<div style={{ color: '#89867e', marginTop: 4 }}>{activity.responsible || 'Sin responsable'}</div></td><td><span className={`status-pill ${activity.status}`}>{activity.status === 'scheduled' ? 'Programada' : activity.status === 'completed' ? 'Realizada' : 'Cancelada'}</span></td><td><input className="field" type="date" value={duplicateDate[activity.id] || ''} onChange={e => setDuplicateDate({ ...duplicateDate, [activity.id]: e.target.value })} aria-label={`Nueva fecha para duplicar ${activity.name}`} data-testid={`input-duplicate-date-${activity.id}`} /></td><td><div className="actions"><button className="button icon-button" title="Duplicar" aria-label={`Duplicar ${activity.name}`} disabled={!duplicateDate[activity.id] || duplicate.isPending} data-testid={`button-duplicate-${activity.id}`} onClick={() => duplicate.mutate({ id: activity.id, data: { date: duplicateDate[activity.id] } }, { onSuccess: refresh })}><Plus size={14} /></button>{activity.status === 'scheduled' && <button className="button icon-button button-danger" title="Cancelar actividad" aria-label={`Cancelar ${activity.name}`} data-testid={`button-cancel-${activity.id}`} onClick={() => { if (window.confirm(`¿Cancelar «${activity.name}»?`)) cancel.mutate({ id: activity.id }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Una agenda por estrenar" detail="No hay actividades que coincidan. Añade una actividad para organizar la sala." action={<button className="button button-primary" onClick={() => setShowForm(true)}><Plus size={14} /> Nueva actividad</button>} />}
+      {isLoading ? <LoadingRows /> : isError ? <div style={{ padding: 16 }}><QueryError retry={() => void refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Actividad</th><th>Tipo / responsable</th><th>Estado</th><th>Repetir en</th><th>Acciones</th></tr></thead><tbody>{filtered.map(activity => <tr key={activity.id} data-testid={`row-activity-${activity.id}`}><td>{longDate(activity.date)}{activity.startTime && <div style={{ color: '#89867e', marginTop: 4 }}>{activity.startTime}{activity.endTime ? `–${activity.endTime}` : ''}</div>}</td><td><Link href={`/actividades/${activity.id}`} style={{ color: '#34332e', fontWeight: 600, textDecoration: 'none' }}>{activity.name}</Link></td><td>{typeLabels[activity.type] || activity.type}<div style={{ color: '#89867e', marginTop: 4 }}>{activity.responsible || 'Sin responsable'}</div></td><td><span className={`status-pill ${activity.status}`}>{activity.status === 'scheduled' ? 'Programada' : activity.status === 'completed' ? 'Realizada' : 'Cancelada'}</span></td><td><input className="field" type="date" value={duplicateDate[activity.id] || ''} onChange={e => setDuplicateDate({ ...duplicateDate, [activity.id]: e.target.value })} aria-label={`Nueva fecha para duplicar ${activity.name}`} data-testid={`input-duplicate-date-${activity.id}`} /></td><td><div className="actions"><button className="button icon-button" title="Duplicar" aria-label={`Duplicar ${activity.name}`} disabled={!duplicateDate[activity.id] || duplicate.isPending} data-testid={`button-duplicate-${activity.id}`} onClick={() => duplicate.mutate({ id: activity.id, data: { date: duplicateDate[activity.id] } }, { onSuccess: refresh })}><Plus size={14} /></button>{activity.status === 'scheduled' && <button className="button icon-button button-danger" title="Cancelar actividad" aria-label={`Cancelar ${activity.name}`} data-testid={`button-cancel-${activity.id}`} onClick={() => { if (window.confirm(`¿Cancelar «${activity.name}»?`)) cancel.mutate({ id: activity.id }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Sin actividades" detail="No hay actividades con este filtro." action={<button className="button button-primary" onClick={() => setShowForm(true)}><Plus size={14} /> Nueva actividad</button>} />}
     </Panel>
   </div>;
 }
@@ -338,9 +338,9 @@ function ActivityFields({ activity }: { activity?: Activity } = {}) {
     <Field label="Responsable"><input className="field" name="responsible" defaultValue={activity?.responsible || ''} placeholder="Persona responsable" data-testid="input-activity-responsible" /></Field>
     <Field label="Repetición"><select className="select-field" name="recurrence" defaultValue="none" data-testid="select-activity-recurrence"><option value="none">No repetir</option><option value="weekly">Cada semana</option><option value="biweekly">Cada dos semanas</option><option value="monthly">Cada mes</option></select></Field>
     <Field label="Número de fechas"><input className="field" type="number" name="recurrenceCount" min="1" max="24" defaultValue="1" data-testid="input-recurrence-count" /></Field>
-    <Field label="Descripción" full><textarea className="textarea" name="description" defaultValue={activity?.description || ''} placeholder="Contexto para el equipo" data-testid="textarea-activity-description" /></Field>
+    <Field label="Descripción" full><textarea className="textarea" name="description" defaultValue={activity?.description || ''} placeholder="Detalle" data-testid="textarea-activity-description" /></Field>
     <Field label="Tareas pendientes · una por línea" full><textarea className="textarea" name="pendingTasks" defaultValue={activity?.pendingTasks?.join('\n') || ''} placeholder="Preparar materiales" data-testid="textarea-activity-tasks" /></Field>
-    <Field label="Notas internas" full><textarea className="textarea" name="notes" defaultValue={activity?.notes || ''} data-testid="textarea-activity-notes" /></Field>
+    <Field label="Notas" full><textarea className="textarea" name="notes" defaultValue={activity?.notes || ''} data-testid="textarea-activity-notes" /></Field>
   </div>;
 }
 
@@ -385,11 +385,11 @@ function MovementsPage() {
     else create.mutate({ data: payload }, { onSuccess: () => { refresh(); setShowForm(false); } });
   }
   return <div className="content">
-    <PageHeading eyebrow="Economía cotidiana" title="Movimientos" description="Un registro fiel, con el contexto de cada actividad y socio.">
+    <PageHeading eyebrow="Cuentas" title="Movimientos" description="Ingresos, gastos, aportes y reintegros.">
       <button className="button button-primary" onClick={openNew} data-testid="button-new-movement"><Plus size={15} /> Registrar movimiento</button>
     </PageHeading>
-    <div style={{ padding: '12px 15px', marginBottom: 16, border: '1px solid #ded8cd', background: '#f9f6ef', borderRadius: 8, fontSize: 11, color: '#706e67', lineHeight: 1.55 }}><strong style={{ color: '#45443f' }}>Criterio contable.</strong> Aportes no son ingresos; los gastos pagados por socios cuentan como gasto y generan deuda. Los reintegros reducen deuda, no son gasto. Las anulaciones conservan su historial.</div>
-    {showForm && <Panel title={editing ? 'Editar movimiento' : 'Registrar movimiento'} subtitle="Asegúrate de clasificarlo correctamente">
+    <div style={{ padding: '12px 15px', marginBottom: 16, border: '1px solid #ded8cd', background: '#f9f6ef', borderRadius: 8, fontSize: 11, color: '#706e67', lineHeight: 1.55 }}><strong style={{ color: '#45443f' }}>Criterio contable.</strong> Los aportes no son ingresos. Los gastos pagados por la compañía cuentan como gasto y generan deuda. Los reintegros reducen la deuda y no son un gasto. Las anulaciones quedan en el historial.</div>
+    {showForm && <Panel title={editing ? 'Editar movimiento' : 'Registrar movimiento'} subtitle="Tipo, importe y a qué corresponde.">
       <form className="inline-form" onSubmit={e => { e.preventDefault(); submitMovement(e.currentTarget); }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
           <button type="button" className="button button-quiet" onClick={() => setShowCategoryForm(!showCategoryForm)} data-testid="button-toggle-category"><Plus size={13} /> Añadir categoría</button>
@@ -410,7 +410,7 @@ function MovementsPage() {
         <select className="select-field" value={kind} onChange={e => setKind(e.target.value)} data-testid="select-movement-type"><option value="all">Todos los tipos</option>{Object.keys(typeLabels).slice(0, 5).map(type => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>
         <label style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#706e67', fontSize: 11 }}><input type="checkbox" checked={includeVoided} onChange={e => setIncludeVoided(e.target.checked)} data-testid="checkbox-include-voided" /> Mostrar anulados</label>
       </div>
-      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / socio</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.partnerName}</div>}</td><td className={`amount ${['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{currency(m.amount)}</td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="El registro está despejado" detail="Añade el primer movimiento para llevar las cuentas del espacio." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
+      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / compañía</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.partnerName}</div>}</td><td className={`amount ${['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{currency(m.amount)}</td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Sin movimientos" detail="Cargá un ingreso o un gasto para llevar las cuentas." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
     </Panel>
   </div>;
 }
@@ -422,15 +422,15 @@ function MovementFields({ movement, categories, partners, activities }: { moveme
   return <div className="form-grid">
     <Field label="Tipo"><select className="select-field" name="type" value={type} onChange={e => setType(e.target.value as typeof type)} data-testid="select-movement-form-type">{['income','expense','partner_contribution','partner_expense','reimbursement'].map(x => <option key={x} value={x}>{typeLabels[x]}</option>)}</select></Field>
     <Field label="Fecha"><input className="field" name="date" type="date" required defaultValue={movement?.date.slice(0, 10) || todayString()} data-testid="input-movement-date" /></Field>
-    <Field label="Concepto" full><input className="field" name="concept" required defaultValue={movement?.concept || ''} placeholder="Descripción breve y clara" data-testid="input-movement-concept" /></Field>
+    <Field label="Concepto" full><input className="field" name="concept" required defaultValue={movement?.concept || ''} placeholder="Qué se pagó o cobró" data-testid="input-movement-concept" /></Field>
     <Field label="Importe (€)"><input className="field" name="amount" type="number" min="0.01" step="0.01" required defaultValue={movement?.amount ?? ''} placeholder="0,00" data-testid="input-movement-amount" /></Field>
     <Field label="Categoría"><select className="select-field" name="categoryId" defaultValue={movement?.categoryId || ''} data-testid="select-movement-category"><option value="">Sin categoría</option>{relevantCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
     <Field label="Actividad relacionada"><select className="select-field" name="activityId" defaultValue={movement?.activityId || ''} data-testid="select-movement-activity"><option value="">General del espacio</option>{activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-    {needsPartner && <Field label="Socio relacionado"><select className="select-field" name="partnerId" required defaultValue={movement?.partnerId || ''} data-testid="select-movement-partner"><option value="">Selecciona un socio</option>{partners.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
-    <Field label="Notas internas" full><textarea className="textarea" name="notes" defaultValue={movement?.notes || ''} placeholder="Detalle útil para el equipo" data-testid="textarea-movement-notes" /></Field>
-    {type === 'partner_expense' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>Este gasto cuenta como gasto operativo y, a la vez, aumenta la deuda con el socio.</div>}
-    {type === 'partner_contribution' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El aporte se registra en el ledger del socio; no se suma a los ingresos operativos.</div>}
-    {type === 'reimbursement' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El reintegro reduce la deuda con el socio; no se contabiliza como gasto.</div>}
+    {needsPartner && <Field label="Quién"><select className="select-field" name="partnerId" required defaultValue={movement?.partnerId || ''} data-testid="select-movement-partner"><option value="">Elegí a alguien</option>{partners.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
+    <Field label="Notas" full><textarea className="textarea" name="notes" defaultValue={movement?.notes || ''} placeholder="Nota" data-testid="textarea-movement-notes" /></Field>
+    {type === 'partner_expense' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>Este gasto cuenta como gasto y aumenta lo que hay que devolver.</div>}
+    {type === 'partner_contribution' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El aporte queda en la cuenta de esa persona y no suma como ingreso.</div>}
+    {type === 'reimbursement' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El reintegro reduce lo que hay que devolver y no cuenta como gasto.</div>}
   </div>;
 }
 
@@ -453,27 +453,27 @@ function PartnersPage() {
     else create.mutate({ data: payload }, { onSuccess: partner => { refresh(); setOpenForm(false); setSelectedId(partner.id); } });
   }
   return <div className="content">
-    <PageHeading eyebrow="Personas y acuerdos" title="Socios" description="Información de contacto y cuenta corriente de quienes sostienen el espacio.">
-      <button className="button button-primary" onClick={() => { setEditing(null); setOpenForm(!openForm); }} data-testid="button-new-partner"><Plus size={15} /> Añadir socio</button>
+    <PageHeading eyebrow="Cuentas" title="Compañía" description="Contacto, aportes y lo que hay que devolver.">
+      <button className="button button-primary" onClick={() => { setEditing(null); setOpenForm(!openForm); }} data-testid="button-new-partner"><Plus size={15} /> Añadir</button>
     </PageHeading>
-    {openForm && <Panel title={editing ? 'Editar ficha' : 'Nuevo socio'} subtitle="Datos de contacto del equipo">
+    {openForm && <Panel title={editing ? 'Editar ficha' : 'Nueva ficha'} subtitle="Nombre y contacto.">
       <form className="inline-form" onSubmit={e => { e.preventDefault(); save(e.currentTarget); }}>
         <div className="form-grid"><Field label="Nombre"><input className="field" name="name" required defaultValue={editing?.name || ''} data-testid="input-partner-name" /></Field><Field label="Correo electrónico"><input className="field" name="email" type="email" defaultValue={editing?.email || ''} data-testid="input-partner-email" /></Field><Field label="Teléfono"><input className="field" name="phone" defaultValue={editing?.phone || ''} data-testid="input-partner-phone" /></Field><Field label="Notas" full><textarea className="textarea" name="notes" defaultValue={editing?.notes || ''} data-testid="textarea-partner-notes" /></Field></div>
         <div className="form-actions"><button type="button" className="button" onClick={() => setOpenForm(false)}>Cancelar</button><button className="button button-primary" disabled={create.isPending || update.isPending} data-testid="button-save-partner">{create.isPending || update.isPending ? 'Guardando…' : 'Guardar ficha'}</button></div>
       </form>
     </Panel>}
     <div className="detail-layout" style={{ marginTop: 15 }}>
-      <Panel title="Equipo" subtitle={`${partners.length} socios`} action={<div style={{ position: 'relative' }}><Search size={13} style={{ position: 'absolute', top: 11, left: 10, color: '#89867e' }} /><input className="field" style={{ width: 170, paddingLeft: 29 }} placeholder="Buscar socio" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-partners" /></div>}>
-        {list.isLoading ? <LoadingRows /> : list.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void list.refetch()} /></div> : partners.length ? <div className="table-wrap"><table className="data-table" style={{ minWidth: 490 }}><thead><tr><th>Socio</th><th>Aportado</th><th>Gastos directos</th><th>Pendiente</th><th></th></tr></thead><tbody>{partners.map(p => <tr key={p.id} data-testid={`row-partner-${p.id}`} onClick={() => setSelectedId(p.id)} style={{ cursor: 'pointer', background: selectedId === p.id ? '#f4f0e7' : undefined }}><td><strong>{p.name}</strong><div style={{ color: '#89867e', marginTop: 4 }}>{p.email || p.phone || 'Sin contacto'}</div></td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount" style={{ color: p.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(p.balanceDue)}</td><td><button className="button icon-button" aria-label={`Editar ${p.name}`} title="Editar ficha" data-testid={`button-edit-partner-${p.id}`} onClick={e => { e.stopPropagation(); setEditing(p); setOpenForm(true); }}><Settings2 size={14} /></button></td></tr>)}</tbody></table></div> : <EmptyState title="Un equipo por conocer" detail="Añade socios para llevar sus aportes, gastos y reintegros." action={<button className="button button-primary" onClick={() => setOpenForm(true)}><Plus size={14} /> Añadir socio</button>} />}
+      <Panel title="Personas" subtitle={`${partners.length} en la compañía`} action={<div style={{ position: 'relative' }}><Search size={13} style={{ position: 'absolute', top: 11, left: 10, color: '#89867e' }} /><input className="field" style={{ width: 170, paddingLeft: 29 }} placeholder="Buscar" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-partners" /></div>}>
+        {list.isLoading ? <LoadingRows /> : list.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void list.refetch()} /></div> : partners.length ? <div className="table-wrap"><table className="data-table" style={{ minWidth: 490 }}><thead><tr><th>Nombre</th><th>Aportado</th><th>Gastos directos</th><th>Pendiente</th><th></th></tr></thead><tbody>{partners.map(p => <tr key={p.id} data-testid={`row-partner-${p.id}`} onClick={() => setSelectedId(p.id)} style={{ cursor: 'pointer', background: selectedId === p.id ? '#f4f0e7' : undefined }}><td><strong>{p.name}</strong><div style={{ color: '#89867e', marginTop: 4 }}>{p.email || p.phone || 'Sin contacto'}</div></td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount" style={{ color: p.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(p.balanceDue)}</td><td><button className="button icon-button" aria-label={`Editar ${p.name}`} title="Editar ficha" data-testid={`button-edit-partner-${p.id}`} onClick={e => { e.stopPropagation(); setEditing(p); setOpenForm(true); }}><Settings2 size={14} /></button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin personas" detail="Cargá a alguien de la compañía para llevar sus aportes y devoluciones." action={<button className="button button-primary" onClick={() => setOpenForm(true)}><Plus size={14} /> Añadir socio</button>} />}
       </Panel>
-      <Panel title={ledger.data?.partner.name || 'Cuenta del socio'} subtitle={ledger.data ? 'Aportes, gastos pagados y reintegros' : 'Selecciona a una persona para consultar su ledger'}>
-        {!selectedId ? <EmptyState title="El ledger, en contexto" detail="El historial financiero individual se muestra al elegir un socio." icon={Wallet} /> : ledger.isLoading ? <LoadingRows /> : ledger.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void ledger.refetch()} /></div> : ledger.data ? <>
-          <div className="balance-card" style={{ margin: 14 }}><div className="eyebrow">Pendiente de reintegro</div><div className="balance-big" style={{ color: ledger.data.partner.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(ledger.data.partner.balanceDue)}</div><p>Gastos pagados directamente por el socio, menos reintegros realizados. Los aportes quedan registrados aparte.</p></div>
-          <div className="panel-body">{ledger.data.movements.length ? ledger.data.movements.map(m => <MovementRow key={m.id} movement={m} />) : <EmptyState title="Sin actividad en la cuenta" detail="Los movimientos vinculados a este socio aparecerán aquí." />}</div>
+      <Panel title={ledger.data?.partner.name || 'Cuenta'} subtitle={ledger.data ? 'Aportes, gastos pagados y reintegros' : 'Elegí a alguien para ver su cuenta'}>
+        {!selectedId ? <EmptyState title="Cuenta" detail="Elegí a alguien para ver sus movimientos." icon={Wallet} /> : ledger.isLoading ? <LoadingRows /> : ledger.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void ledger.refetch()} /></div> : ledger.data ? <>
+          <div className="balance-card" style={{ margin: 14 }}><div className="eyebrow">Pendiente de reintegro</div><div className="balance-big" style={{ color: ledger.data.partner.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(ledger.data.partner.balanceDue)}</div><p>Gastos pagados por esa persona, menos lo ya devuelto. Los aportes quedan aparte.</p></div>
+          <div className="panel-body">{ledger.data.movements.length ? ledger.data.movements.map(m => <MovementRow key={m.id} movement={m} />) : <EmptyState title="Sin movimientos" detail="Los de esta persona van a aparecer acá." />}</div>
         </> : null}
       </Panel>
     </div>
-    {selectedId && ledger.data && <div className="metric-grid" style={{ marginTop: 15 }}><Metric label="Aportes" value={currency(ledger.data.partner.totalContributed)} hint="No son ingresos operativos" icon={ArrowDownLeft} /><Metric label="Gastos directos" value={currency(ledger.data.partner.directExpenses)} hint="Pagados por el socio" icon={Receipt} /><Metric label="Reintegros" value={currency(ledger.data.partner.reimbursements)} hint="Reducen la deuda" icon={Check} /><Metric label="Pendiente" value={currency(ledger.data.partner.balanceDue)} hint="A devolver al socio" icon={HandCoins} dark /></div>}
+    {selectedId && ledger.data && <div className="metric-grid" style={{ marginTop: 15 }}><Metric label="Aportes" value={currency(ledger.data.partner.totalContributed)} hint="No son ingresos operativos" icon={ArrowDownLeft} /><Metric label="Gastos directos" value={currency(ledger.data.partner.directExpenses)} hint="Pagados por esa persona" icon={Receipt} /><Metric label="Reintegros" value={currency(ledger.data.partner.reimbursements)} hint="Reducen lo pendiente" icon={Check} /><Metric label="Pendiente" value={currency(ledger.data.partner.balanceDue)} hint="A devolver" icon={HandCoins} dark /></div>}
   </div>;
 }
 
@@ -496,7 +496,7 @@ function ReportsPage() {
   const result = report.data;
   const maxCat = Math.max(1, ...(result?.expensesByCategory || []).map(c => c.amount));
   return <div className="content">
-    <PageHeading eyebrow="Lectura económica" title="Informes" description="Una lectura del período; el resultado no equivale al saldo de caja.">
+    <PageHeading eyebrow="Cuentas" title="Informes" description="El resultado no es el dinero en caja.">
       <button className="button" disabled={exportQuery.isFetching} onClick={() => { setExportPending(true); void exportQuery.refetch(); }} data-testid="button-export-csv"><Download size={14} />{exportQuery.isFetching ? 'Preparando…' : 'Exportar CSV'}</button>
     </PageHeading>
     <div className="filterbar" style={{ border: '1px solid #ded8cd', borderRadius: 9, background: '#fcfaf5', marginBottom: 15 }}>
@@ -508,21 +508,21 @@ function ReportsPage() {
     {report.isLoading ? <div className="metric-grid">{[1, 2, 3].map(i => <div className="metric-card" key={i}><div className="skeleton" /><div className="skeleton" style={{ marginTop: 20, width: '70%', height: 25 }} /></div>)}</div> : result && <>
       <Panel title="Resumen del período" subtitle={`${longDate(from)} — ${longDate(to)}`}>
         <div className="report-total"><div><span>Ingresos operativos</span><strong style={{ color: '#66745a' }}>{currency(result.incomeTotal)}</strong></div><div><span>Gastos operativos</span><strong style={{ color: '#a65d48' }}>{currency(result.expenseTotal)}</strong></div><div><span>Resultado</span><strong>{currency(result.result)}</strong></div><div><span>Gastos generales</span><strong>{currency(result.generalExpenses)}</strong></div></div>
-        <div style={{ padding: '12px 20px', color: '#89867e', fontSize: 10 }}>Los aportes de socios no se consideran ingresos operativos. Los gastos pagados por socios sí forman parte de los gastos. Los reintegros no son gastos.</div>
+        <div style={{ padding: '12px 20px', color: '#89867e', fontSize: 10 }}>Los aportes de la compañía no son ingresos. Los gastos que pagó alguien de la compañía sí son gastos. Los reintegros no son gastos.</div>
       </Panel>
       <div className="dashboard-grid" style={{ marginTop: 15 }}>
         <Panel title="Gastos por categoría" subtitle="Distribución del gasto operativo">
-          {result.expensesByCategory.length ? <div style={{ padding: '18px 22px 31px' }}>{result.expensesByCategory.map((category, index) => <div key={category.categoryName} style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 7 }}><span>{category.categoryName}</span><span className="amount">{currency(category.amount)}</span></div><div style={{ height: 6, background: '#eee9e0', borderRadius: 10 }}><div style={{ width: `${Math.max(3, category.amount / maxCat * 100)}%`, height: 6, borderRadius: 10, background: ['#a47c55','#66745a','#a65d48','#b9a994'][index % 4] }} /></div></div>)}</div> : <EmptyState title="Sin categorías en el período" detail="Cuando haya gastos clasificados, verás aquí su distribución." /> }
+          {result.expensesByCategory.length ? <div style={{ padding: '18px 22px 31px' }}>{result.expensesByCategory.map((category, index) => <div key={category.categoryName} style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 7 }}><span>{category.categoryName}</span><span className="amount">{currency(category.amount)}</span></div><div style={{ height: 6, background: '#eee9e0', borderRadius: 10 }}><div style={{ width: `${Math.max(3, category.amount / maxCat * 100)}%`, height: 6, borderRadius: 10, background: ['#a47c55','#66745a','#a65d48','#b9a994'][index % 4] }} /></div></div>)}</div> : <EmptyState title="Sin categorías en el período" detail="Los gastos clasificados aparecen acá." /> }
         </Panel>
         <Panel title="Actividad y resultado" subtitle={`${result.activities.length} actividades con movimientos`}>
-          <div className="panel-body">{result.activities.length ? result.activities.map(activity => <Link key={activity.activityId} href={`/actividades/${activity.activityId}`} className="list-row" style={{ textDecoration: 'none' }} data-testid={`row-report-activity-${activity.activityId}`}><div className="row-main"><div className="row-title">{activity.activityName}</div><div className="row-detail">{shortDate(activity.date)} · Ingresos {currency(activity.income)} · Gastos {currency(activity.expense)}</div></div><div className="row-trailing">{currency(activity.result)}</div></Link>) : <EmptyState title="Sin actividad económica" detail="Los resultados por actividad aparecerán cuando se vinculen movimientos." />}</div>
+          <div className="panel-body">{result.activities.length ? result.activities.map(activity => <Link key={activity.activityId} href={`/actividades/${activity.activityId}`} className="list-row" style={{ textDecoration: 'none' }} data-testid={`row-report-activity-${activity.activityId}`}><div className="row-main"><div className="row-title">{activity.activityName}</div><div className="row-detail">{shortDate(activity.date)} · Ingresos {currency(activity.income)} · Gastos {currency(activity.expense)}</div></div><div className="row-trailing">{currency(activity.result)}</div></Link>) : <EmptyState title="Sin movimientos en actividades" detail="Cuando un movimiento tenga actividad, el resultado aparece acá." />}</div>
         </Panel>
       </div>
-      <Panel title="Cuentas de socios" subtitle="Gastos directos y deuda pendiente" className="report-partners" >
-        {result.partners.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Socio</th><th>Aportado</th><th>Gastos pagados directamente</th><th>Reintegrado</th><th>Pendiente</th></tr></thead><tbody>{result.partners.map(p => <tr key={p.id}><td>{p.name}</td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount">{currency(p.reimbursements)}</td><td className="amount">{currency(p.balanceDue)}</td></tr>)}</tbody></table></div> : <EmptyState title="Sin cuentas de socios" detail="No hay movimientos de socios en este período." />}
+      <Panel title="Cuentas de la compañía" subtitle="Gastos directos y lo pendiente" className="report-partners" >
+        {result.partners.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Nombre</th><th>Aportado</th><th>Gastos pagados directamente</th><th>Reintegrado</th><th>Pendiente</th></tr></thead><tbody>{result.partners.map(p => <tr key={p.id}><td>{p.name}</td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount">{currency(p.reimbursements)}</td><td className="amount">{currency(p.balanceDue)}</td></tr>)}</tbody></table></div> : <EmptyState title="Sin cuentas" detail="No hay movimientos de la compañía en este período." />}
       </Panel>
-      <Panel title="Evolución de la deuda con socios" subtitle="Histórico de importes pendientes" >
-        {result.debtHistory.length ? <div className="chart-bars">{result.debtHistory.slice(-12).map((point, i) => <div className="bar-group" key={`${point.date}-${i}`}><div className="bar" style={{ height: `${Math.max(4, point.amount / Math.max(1, ...result.debtHistory.map(d => d.amount)) * 85)}%` }} /><span className="chart-label">{shortDate(point.date)}</span></div>)}</div> : <EmptyState title="Sin historial de deuda" detail="La evolución aparecerá cuando haya gastos directos y reintegros." /> }
+      <Panel title="Evolución de lo pendiente" subtitle="Lo que hay que devolver" >
+        {result.debtHistory.length ? <div className="chart-bars">{result.debtHistory.slice(-12).map((point, i) => <div className="bar-group" key={`${point.date}-${i}`}><div className="bar" style={{ height: `${Math.max(4, point.amount / Math.max(1, ...result.debtHistory.map(d => d.amount)) * 85)}%` }} /><span className="chart-label">{shortDate(point.date)}</span></div>)}</div> : <EmptyState title="Sin deuda en el período" detail="Aparece cuando alguien de la compañía pague un gasto o haya un reintegro." /> }
         <div style={{ height: 30 }} />
       </Panel>
     </>}
@@ -555,16 +555,16 @@ function ActivityDetailPage() {
   if (query.isError || !activity) return <AppShell page="agenda"><div className="content"><QueryError retry={() => void query.refetch()} /><Link href="/agenda" className="button" style={{ marginTop: 15 }}><ArrowLeft size={14} /> Volver a agenda</Link></div></AppShell>;
   return <AppShell page="agenda"><div className="content">
     <Link href="/agenda" className="button button-quiet" style={{ marginBottom: 18 }} data-testid="link-back-agenda"><ArrowLeft size={14} /> Agenda</Link>
-    {editing ? <Panel title="Editar actividad" subtitle="Actualiza los detalles de la sala"><form className="inline-form" onSubmit={e => { e.preventDefault(); save(e.currentTarget); }}><ActivityFields activity={activity} /><div className="form-actions"><button type="button" className="button" onClick={() => setEditing(false)}>Cancelar</button><button className="button button-primary" disabled={update.isPending} data-testid="button-save-activity-edit">Guardar cambios</button></div></form></Panel> : <div className="page-heading"><div className="detail-hero" style={{ flex: 1 }}><div className="eyebrow">{typeLabels[activity.type]} · {activity.status === 'scheduled' ? 'Programada' : activity.status === 'completed' ? 'Realizada' : 'Cancelada'}</div><h2>{activity.name}</h2><p>{activity.description || 'Una actividad en el corazón de Espacio Vergara.'}</p><div className="detail-meta"><span><CalendarDays size={14} />{longDate(activity.date)}</span>{activity.startTime && <span>{activity.startTime}{activity.endTime ? `–${activity.endTime}` : ''}</span>}{activity.responsible && <span><Users size={14} />{activity.responsible}</span>}</div></div><div className="actions" style={{ alignSelf: 'flex-start' }}><button className="button" onClick={() => setEditing(true)} data-testid="button-edit-activity"><Settings2 size={14} /> Editar</button>{activity.status === 'scheduled' && <button className="button button-danger" onClick={() => { if (window.confirm(`¿Cancelar «${activity.name}»?`)) cancel.mutate({ id }, { onSuccess: () => { void qc.invalidateQueries({ queryKey: getGetActivityQueryKey(id) }); void qc.invalidateQueries({ queryKey: getListActivitiesQueryKey() }); } }); }} data-testid="button-cancel-activity">Cancelar</button>}</div></div>}
+    {editing ? <Panel title="Editar actividad" subtitle="Fecha, horario y responsable."><form className="inline-form" onSubmit={e => { e.preventDefault(); save(e.currentTarget); }}><ActivityFields activity={activity} /><div className="form-actions"><button type="button" className="button" onClick={() => setEditing(false)}>Cancelar</button><button className="button button-primary" disabled={update.isPending} data-testid="button-save-activity-edit">Guardar cambios</button></div></form></Panel> : <div className="page-heading"><div className="detail-hero" style={{ flex: 1 }}><div className="eyebrow">{typeLabels[activity.type]} · {activity.status === 'scheduled' ? 'Programada' : activity.status === 'completed' ? 'Realizada' : 'Cancelada'}</div><h2>{activity.name}</h2><p>{activity.description || 'Sin descripción.'}</p><div className="detail-meta"><span><CalendarDays size={14} />{longDate(activity.date)}</span>{activity.startTime && <span>{activity.startTime}{activity.endTime ? `–${activity.endTime}` : ''}</span>}{activity.responsible && <span><Users size={14} />{activity.responsible}</span>}</div></div><div className="actions" style={{ alignSelf: 'flex-start' }}><button className="button" onClick={() => setEditing(true)} data-testid="button-edit-activity"><Settings2 size={14} /> Editar</button>{activity.status === 'scheduled' && <button className="button button-danger" onClick={() => { if (window.confirm(`¿Cancelar «${activity.name}»?`)) cancel.mutate({ id }, { onSuccess: () => { void qc.invalidateQueries({ queryKey: getGetActivityQueryKey(id) }); void qc.invalidateQueries({ queryKey: getListActivitiesQueryKey() }); } }); }} data-testid="button-cancel-activity">Cancelar</button>}</div></div>}
     <div className="detail-layout" style={{ marginTop: 15 }}>
       <Panel title="Movimientos relacionados" subtitle="Ingresos y gastos vinculados a esta actividad">
         <div className="report-total"><div><span>Ingresos</span><strong style={{ color: '#66745a' }}>{currency(query.data.incomeTotal)}</strong></div><div><span>Gastos</span><strong style={{ color: '#a65d48' }}>{currency(query.data.expenseTotal)}</strong></div><div><span>Resultado</span><strong>{currency(query.data.result)}</strong></div></div>
-        <div className="panel-body">{query.data.movements.length ? query.data.movements.map(m => <MovementRow key={m.id} movement={m} />) : <EmptyState title="Sin movimientos relacionados" detail="Vincula ingresos o gastos desde el registro de movimientos." />}</div>
+        <div className="panel-body">{query.data.movements.length ? query.data.movements.map(m => <MovementRow key={m.id} movement={m} />) : <EmptyState title="Sin movimientos" detail="Los de esta actividad aparecen acá." />}</div>
       </Panel>
       <div style={{ display: 'grid', alignContent: 'start', gap: 15 }}>
-        <Panel title="Tareas pendientes" subtitle={`${activity.pendingTasks.length} por atender`}><div className="panel-body">{activity.pendingTasks.length ? activity.pendingTasks.map((task, i) => <div className="list-row" key={`${task}-${i}`}><span className="empty-mark" style={{ width: 25, height: 25, margin: 0 }}><Check size={12} /></span><div className="row-main">{task}</div></div>) : <EmptyState title="Todo al día" detail="No hay tareas pendientes para esta actividad." />}</div></Panel>
-        <div className="panel" style={{ padding: 18 }}><div className="eyebrow">Repetir actividad</div><p style={{ color: '#706e67', fontSize: 11, lineHeight: 1.5 }}>Crea una nueva fecha con estos mismos detalles.</p><div style={{ display: 'flex', gap: 8 }}><input className="field" type="date" value={duplicateDate} onChange={e => setDuplicateDate(e.target.value)} data-testid="input-detail-duplicate-date" /><button className="button" disabled={!duplicateDate || duplicate.isPending} onClick={() => duplicate.mutate({ id, data: { date: duplicateDate } }, { onSuccess: activityCopy => { void qc.invalidateQueries({ queryKey: getListActivitiesQueryKey() }); setLocation(`/actividades/${activityCopy.id}`); } })} data-testid="button-detail-duplicate"><Plus size={14} /></button></div></div>
-        {activity.notes && <Panel title="Notas internas"><div className="panel-body" style={{ paddingTop: 14, fontSize: 12, color: '#706e67', lineHeight: 1.6 }}>{activity.notes}</div></Panel>}
+        <Panel title="Tareas pendientes" subtitle={`${activity.pendingTasks.length} cargadas`}><div className="panel-body">{activity.pendingTasks.length ? activity.pendingTasks.map((task, i) => <div className="list-row" key={`${task}-${i}`}><span className="empty-mark" style={{ width: 25, height: 25, margin: 0 }}><Check size={12} /></span><div className="row-main">{task}</div></div>) : <EmptyState title="Sin tareas" detail="Esta actividad no tiene tareas." />}</div></Panel>
+        <div className="panel" style={{ padding: 18 }}><div className="eyebrow">Repetir actividad</div><p style={{ color: '#706e67', fontSize: 11, lineHeight: 1.5 }}>Misma actividad, otra fecha.</p><div style={{ display: 'flex', gap: 8 }}><input className="field" type="date" value={duplicateDate} onChange={e => setDuplicateDate(e.target.value)} data-testid="input-detail-duplicate-date" /><button className="button" disabled={!duplicateDate || duplicate.isPending} onClick={() => duplicate.mutate({ id, data: { date: duplicateDate } }, { onSuccess: activityCopy => { void qc.invalidateQueries({ queryKey: getListActivitiesQueryKey() }); setLocation(`/actividades/${activityCopy.id}`); } })} data-testid="button-detail-duplicate"><Plus size={14} /></button></div></div>
+        {activity.notes && <Panel title="Notas"><div className="panel-body" style={{ paddingTop: 14, fontSize: 12, color: '#706e67', lineHeight: 1.6 }}>{activity.notes}</div></Panel>}
       </div>
     </div>
   </div></AppShell>;
