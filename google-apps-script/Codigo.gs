@@ -379,7 +379,7 @@ function sumType(list, type) {
 function partnerRow(id, input, created) {
   return [
     id,
-    requireText(input.name, "El socio necesita un nombre."),
+    requireText(input.name, "El miembro necesita un nombre."),
     text(input.email) || "",
     text(input.phone) || "",
     text(input.notes) || "",
@@ -397,7 +397,7 @@ function createPartner(input) {
 
 function updatePartner(id, input) {
   var current = findById(rows("Socios"), id);
-  if (!current) throw new Error("Socio no encontrado.");
+  if (!current) throw new Error("Miembro no encontrado.");
   var merged = {
     name: input.name != null ? input.name : current.nombre,
     email: input.email !== undefined ? input.email : current.email,
@@ -414,7 +414,7 @@ function updatePartner(id, input) {
 
 function partnerLedger(id) {
   var partner = partnerSummaries().filter(function (item) { return item.id === Number(id); })[0];
-  if (!partner) throw new Error("Socio no encontrado.");
+  if (!partner) throw new Error("Miembro no encontrado.");
   return {
     partner: partner,
     movements: movementViews({ partnerId: Number(id), includeVoided: true })
@@ -599,10 +599,10 @@ function validateMovement(input) {
   var activityId = nullableId(input.activityId);
   var needsPartner = PARTNER_TYPES.indexOf(input.type) !== -1;
   if (needsPartner && partnerId === "") {
-    throw new Error("Los aportes, gastos cubiertos y devoluciones deben tener un socio.");
+    throw new Error("Los aportes, gastos cubiertos y devoluciones deben tener un miembro.");
   }
   if (!needsPartner && partnerId !== "") {
-    throw new Error("Los ingresos y gastos del espacio no llevan socio.");
+    throw new Error("Los ingresos y gastos del espacio no llevan miembro.");
   }
   if (categoryId !== "") {
     var category = findById(rows("Categorias"), categoryId);
@@ -616,7 +616,7 @@ function validateMovement(input) {
     throw new Error("La actividad seleccionada no existe.");
   }
   if (partnerId !== "" && !findById(rows("Socios"), partnerId)) {
-    throw new Error("El socio seleccionado no existe.");
+    throw new Error("El miembro seleccionado no existe.");
   }
   return {
     type: input.type,
@@ -787,7 +787,7 @@ function exportCsv(from, to) {
     from: from ? String(from).slice(0, 10) : undefined,
     to: to ? String(to).slice(0, 10) : undefined
   });
-  var header = ["fecha", "tipo", "concepto", "importe", "categoría", "actividad", "socio", "estado", "observaciones"];
+  var header = ["fecha", "tipo", "concepto", "importe", "categoría", "actividad", "miembro", "estado", "observaciones"];
   var lines = [header.map(csvCell).join(",")];
   list.forEach(function (row) {
     lines.push([

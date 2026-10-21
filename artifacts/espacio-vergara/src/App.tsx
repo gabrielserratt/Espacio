@@ -1,7 +1,7 @@
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
-  Activity as ActivityIcon, ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays,
+  ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays,
   Check, CircleDollarSign, ClipboardList, Download, FileText, HandCoins, HeartHandshake,
   LayoutDashboard, LogOut, Plus, Receipt, Search, Settings2, Users, Wallet, X,
 } from 'lucide-react';
@@ -81,7 +81,17 @@ function useHashLocation(): [string, (to: string, options?: { replace?: boolean 
 function errorText(error: unknown) {
   return error instanceof Error ? error.message : 'No se pudo completar la operación.';
 }
-const currency = (amount: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(Number(amount || 0));
+const currency = (amount: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount || 0));
+const formatAmountInput = (value: number) => new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+const formatThousandsInput = (raw: string) => {
+  const cleaned = raw.replace(/\./g, '').replace(/[^\d,]/g, '');
+  const comma = cleaned.indexOf(',');
+  const whole = (comma === -1 ? cleaned : cleaned.slice(0, comma)).replace(/^0+(?=\d)/, '');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  if (comma === -1) return grouped;
+  return `${grouped || '0'},${cleaned.slice(comma + 1).replace(/,/g, '').slice(0, 2)}`;
+};
+const parseAmount = (value: string) => Number(value.replace(/\./g, '').replace(',', '.'));
 const shortDate = (date?: string | null) => date ? new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(`${date.slice(0, 10)}T12:00:00`)) : '—';
 const longDate = (date?: string | null) => date ? new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${date.slice(0, 10)}T12:00:00`)) : '—';
 const todayString = () => new Date().toISOString().slice(0, 10);
@@ -90,8 +100,8 @@ const monthRange = () => {
   return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10), to: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10) };
 };
 const typeLabels: Record<string, string> = {
-  income: 'Ingreso', expense: 'Gasto', partner_contribution: 'Aporte de la compañía',
-  partner_expense: 'Gasto pagado por la compañía', reimbursement: 'Reintegro',
+  income: 'Ingreso', expense: 'Gasto', partner_contribution: 'Aporte de un miembro',
+  partner_expense: 'Gasto pagado por un miembro', reimbursement: 'Reintegro',
   event: 'Evento', class: 'Clase', workshop: 'Taller', rehearsal: 'Ensayo',
   meeting: 'Reunión', maintenance: 'Mantenimiento', other: 'Otro',
 };
@@ -107,7 +117,7 @@ function Home() {
     <main className="landing-main">
       <div className="landing-copy">
         <div className="landing-kicker">Espacio Vergara · Uso interno</div>
-        <h1>Agenda, cuentas<br />y compañía.</h1>
+        <h1>Agenda, cuentas<br />y miembros.</h1>
         <p>Para cargar lo de la sala y llevar las cuentas de la compañía.</p>
         <div className="landing-cta">
           <Link href="/sign-in" className="button button-primary" data-testid="link-access">Entrar <ArrowRight size={15} /></Link>
@@ -119,13 +129,26 @@ function Home() {
         <div className="visual-caption">USO INTERNO</div>
       </div>
     </main>
-    <footer className="landing-foot"><span>Espacio Vergara</span><span>Gestión interna</span><span>Agenda · Cuentas · Compañía</span></footer>
+    <footer className="landing-foot"><span>Espacio Vergara</span><span>Gestión interna</span><span>Agenda · Cuentas · Miembros</span></footer>
   </div>;
+}
+
+function TheaterMasks() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+    <ellipse cx="15.2" cy="9.4" rx="5.6" ry="6.6" fill="#A47C55" />
+    <circle cx="13.3" cy="8.2" r="0.75" fill="#252522" />
+    <circle cx="17.1" cy="8.2" r="0.75" fill="#252522" />
+    <path d="M13 11.6c1.3-1 3.1-1 4.4 0" fill="none" stroke="#252522" strokeWidth="1.1" strokeLinecap="round" />
+    <ellipse cx="9" cy="14.6" rx="5.6" ry="6.6" fill="#F5F1E8" />
+    <circle cx="7.1" cy="13.4" r="0.75" fill="#252522" />
+    <circle cx="10.9" cy="13.4" r="0.75" fill="#252522" />
+    <path d="M6.8 16.4c1.3 1.1 3.1 1.1 4.4 0" fill="none" stroke="#252522" strokeWidth="1.1" strokeLinecap="round" />
+  </svg>;
 }
 
 function Brand() {
   return <Link href="/" className="brand" data-testid="link-brand">
-    <span className="brand-mark"><ActivityIcon size={17} strokeWidth={1.5} /></span>
+    <span className="brand-mark"><TheaterMasks /></span>
     <span className="brand-name">Espacio Vergara<span className="brand-caption">Uso interno</span></span>
   </Link>;
 }
@@ -149,7 +172,7 @@ function SignInPage() {
     }
   }
   return <div className="auth-screen">
-    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Ingreso</div><h1>Agenda, movimientos y compañía.</h1><p>Usuario y contraseña de la compañía.</p></div><span className="eyebrow">Uso interno</span></aside>
+    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Ingreso</div><h1>Agenda, movimientos y miembros.</h1><p>Usuario y contraseña de la compañía.</p></div><span className="eyebrow">Uso interno</span></aside>
     <div className="auth-form-side"><div className="auth-card">
       <Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link>
       <div style={{ height: 28 }} />
@@ -189,7 +212,7 @@ const navItems = [
   { path: '/inicio', label: 'Inicio', icon: LayoutDashboard },
   { path: '/agenda', label: 'Agenda', icon: CalendarDays },
   { path: '/movimientos', label: 'Movimientos', icon: CircleDollarSign },
-  { path: '/socios', label: 'Compañía', icon: Users },
+  { path: '/socios', label: 'Miembros', icon: Users },
   { path: '/informes', label: 'Informes', icon: FileText },
 ];
 
@@ -206,7 +229,7 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
           {navItems.map(item => <Link key={item.path} href={item.path} className={`nav-link ${page === item.path.slice(1) ? 'active' : ''}`} data-testid={`link-nav-${item.path.slice(1)}`}><item.icon size={16} strokeWidth={1.7} /><span>{item.label}</span></Link>)}
         </nav></div>
         <div className="sidebar-bottom">
-          <div className="venue-note"><strong>Uso interno</strong>Agenda, movimientos y cuentas de la compañía.</div>
+          <div className="venue-note"><strong>Uso interno</strong>Agenda, movimientos y cuentas de los miembros.</div>
           <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{session?.user || 'Equipo Vergara'}<small>{health?.status === 'ok' ? 'Espacio conectado' : 'Equipo administrador'}</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button></div>
         </div>
       </aside>
@@ -253,7 +276,7 @@ function DashboardPage() {
         <Metric label="Ingresos del mes" value={currency(data.monthIncome)} hint="Ingresos operativos" icon={ArrowDownLeft} />
         <Metric label="Gastos del mes" value={currency(data.monthExpenses)} hint="Gastos operativos" icon={ArrowUpRight} />
         <Metric label="Resultado del mes" value={currency(data.monthResult)} hint="Ingresos menos gastos" icon={Wallet} dark />
-        <Metric label="A devolver" value={currency(data.partnerDebt)} hint="Saldo con la compañía" icon={HandCoins} />
+        <Metric label="A devolver" value={currency(data.partnerDebt)} hint="Saldo con los miembros" icon={HandCoins} />
       </section>
       <div style={{ color: '#89867e', fontSize: 11, margin: '-10px 0 22px' }}>Resultado económico; no representa el saldo de caja. Los aportes no son ingresos operativos.</div>
       <div className="dashboard-grid">
@@ -376,7 +399,7 @@ function MovementsPage() {
     const type = String(fd.get('type')) as MovementInput['type'];
     const payload: MovementInput = {
       type, date: String(fd.get('date')), concept: String(fd.get('concept')),
-      amount: Number(fd.get('amount')), categoryId: fd.get('categoryId') ? Number(fd.get('categoryId')) : null,
+      amount: parseAmount(String(fd.get('amount') || '')), categoryId: fd.get('categoryId') ? Number(fd.get('categoryId')) : null,
       activityId: fd.get('activityId') ? Number(fd.get('activityId')) : null,
       partnerId: ['partner_contribution', 'partner_expense', 'reimbursement'].includes(type) && fd.get('partnerId') ? Number(fd.get('partnerId')) : null,
       notes: String(fd.get('notes') || '') || null,
@@ -388,9 +411,9 @@ function MovementsPage() {
     <PageHeading eyebrow="Cuentas" title="Movimientos" description="Ingresos, gastos, aportes y reintegros.">
       <button className="button button-primary" onClick={openNew} data-testid="button-new-movement"><Plus size={15} /> Registrar movimiento</button>
     </PageHeading>
-    <div style={{ padding: '12px 15px', marginBottom: 16, border: '1px solid #ded8cd', background: '#f9f6ef', borderRadius: 8, fontSize: 11, color: '#706e67', lineHeight: 1.55 }}><strong style={{ color: '#45443f' }}>Criterio contable.</strong> Los aportes no son ingresos. Los gastos pagados por la compañía cuentan como gasto y generan deuda. Los reintegros reducen la deuda y no son un gasto. Las anulaciones quedan en el historial.</div>
+    <div style={{ padding: '12px 15px', marginBottom: 16, border: '1px solid #ded8cd', background: '#f9f6ef', borderRadius: 8, fontSize: 11, color: '#706e67', lineHeight: 1.55 }}><strong style={{ color: '#45443f' }}>Criterio contable.</strong> Los aportes no son ingresos. Los gastos pagados por un miembro cuentan como gasto y generan deuda. Los reintegros reducen la deuda y no son un gasto. Las anulaciones quedan en el historial.</div>
     {showForm && <Panel title={editing ? 'Editar movimiento' : 'Registrar movimiento'} subtitle="Tipo, importe y a qué corresponde.">
-      <form className="inline-form" onSubmit={e => { e.preventDefault(); submitMovement(e.currentTarget); }}>
+      <form key={editing?.id ?? 'new'} className="inline-form" onSubmit={e => { e.preventDefault(); submitMovement(e.currentTarget); }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
           <button type="button" className="button button-quiet" onClick={() => setShowCategoryForm(!showCategoryForm)} data-testid="button-toggle-category"><Plus size={13} /> Añadir categoría</button>
         </div>
@@ -406,30 +429,31 @@ function MovementsPage() {
     </Panel>}
     <Panel title="Registro" subtitle={`${filtered.length} movimientos`}>
       <div className="filterbar">
-        <div style={{ position: 'relative' }}><Search size={14} style={{ position: 'absolute', left: 11, top: 12, color: '#89867e' }} /><input className="field search-field" style={{ paddingLeft: 32 }} placeholder="Buscar concepto o persona" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-movements" /></div>
+        <div style={{ position: 'relative' }}><Search size={14} style={{ position: 'absolute', left: 11, top: 12, color: '#89867e' }} /><input className="field search-field" style={{ paddingLeft: 32 }} placeholder="Buscar concepto o miembro" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-movements" /></div>
         <select className="select-field" value={kind} onChange={e => setKind(e.target.value)} data-testid="select-movement-type"><option value="all">Todos los tipos</option>{Object.keys(typeLabels).slice(0, 5).map(type => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>
         <label style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#706e67', fontSize: 11 }}><input type="checkbox" checked={includeVoided} onChange={e => setIncludeVoided(e.target.checked)} data-testid="checkbox-include-voided" /> Mostrar anulados</label>
       </div>
-      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / compañía</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.partnerName}</div>}</td><td className={`amount ${['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{currency(m.amount)}</td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Sin movimientos" detail="Cargá un ingreso o un gasto para llevar las cuentas." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
+      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / miembro</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#89867e', marginTop: 4 }}>{m.partnerName}</div>}</td><td className={`amount ${['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{currency(m.amount)}</td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Sin movimientos" detail="Cargá un ingreso o un gasto para llevar las cuentas." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
     </Panel>
   </div>;
 }
 
 function MovementFields({ movement, categories, partners, activities }: { movement?: Movement; categories: Category[]; partners: Partner[]; activities: Activity[] }) {
   const [type, setType] = useState(movement?.type || 'income');
+  const [amount, setAmount] = useState(movement?.amount ? formatAmountInput(movement.amount) : '');
   const relevantCategories = categories.filter(c => c.appliesTo === 'both' || c.appliesTo === (type === 'income' ? 'income' : 'expense'));
   const needsPartner = ['partner_contribution', 'partner_expense', 'reimbursement'].includes(type);
   return <div className="form-grid">
     <Field label="Tipo"><select className="select-field" name="type" value={type} onChange={e => setType(e.target.value as typeof type)} data-testid="select-movement-form-type">{['income','expense','partner_contribution','partner_expense','reimbursement'].map(x => <option key={x} value={x}>{typeLabels[x]}</option>)}</select></Field>
     <Field label="Fecha"><input className="field" name="date" type="date" required defaultValue={movement?.date.slice(0, 10) || todayString()} data-testid="input-movement-date" /></Field>
     <Field label="Concepto" full><input className="field" name="concept" required defaultValue={movement?.concept || ''} placeholder="Qué se pagó o cobró" data-testid="input-movement-concept" /></Field>
-    <Field label="Importe (€)"><input className="field" name="amount" type="number" min="0.01" step="0.01" required defaultValue={movement?.amount ?? ''} placeholder="0,00" data-testid="input-movement-amount" /></Field>
+    <Field label="Importe ($)"><input className="field" name="amount" inputMode="decimal" required value={amount} placeholder="0,00" onChange={e => setAmount(formatThousandsInput(e.target.value))} data-testid="input-movement-amount" /></Field>
     <Field label="Categoría"><select className="select-field" name="categoryId" defaultValue={movement?.categoryId || ''} data-testid="select-movement-category"><option value="">Sin categoría</option>{relevantCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
     <Field label="Actividad relacionada"><select className="select-field" name="activityId" defaultValue={movement?.activityId || ''} data-testid="select-movement-activity"><option value="">General del espacio</option>{activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-    {needsPartner && <Field label="Quién"><select className="select-field" name="partnerId" required defaultValue={movement?.partnerId || ''} data-testid="select-movement-partner"><option value="">Elegí a alguien</option>{partners.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
+    {needsPartner && <Field label="Miembro"><select className="select-field" name="partnerId" required defaultValue={movement?.partnerId || ''} data-testid="select-movement-partner"><option value="">Elegí un miembro</option>{partners.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
     <Field label="Notas" full><textarea className="textarea" name="notes" defaultValue={movement?.notes || ''} placeholder="Nota" data-testid="textarea-movement-notes" /></Field>
     {type === 'partner_expense' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>Este gasto cuenta como gasto y aumenta lo que hay que devolver.</div>}
-    {type === 'partner_contribution' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El aporte queda en la cuenta de esa persona y no suma como ingreso.</div>}
+    {type === 'partner_contribution' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El aporte queda en la cuenta de ese miembro y no suma como ingreso.</div>}
     {type === 'reimbursement' && <div className="full" style={{ gridColumn: '1 / -1', color: '#706e67', fontSize: 11 }}>El reintegro reduce lo que hay que devolver y no cuenta como gasto.</div>}
   </div>;
 }
@@ -453,7 +477,7 @@ function PartnersPage() {
     else create.mutate({ data: payload }, { onSuccess: partner => { refresh(); setOpenForm(false); setSelectedId(partner.id); } });
   }
   return <div className="content">
-    <PageHeading eyebrow="Cuentas" title="Compañía" description="Contacto, aportes y lo que hay que devolver.">
+    <PageHeading eyebrow="Cuentas" title="Miembros" description="Contacto, aportes y lo que hay que devolver.">
       <button className="button button-primary" onClick={() => { setEditing(null); setOpenForm(!openForm); }} data-testid="button-new-partner"><Plus size={15} /> Añadir</button>
     </PageHeading>
     {openForm && <Panel title={editing ? 'Editar ficha' : 'Nueva ficha'} subtitle="Nombre y contacto.">
@@ -463,17 +487,17 @@ function PartnersPage() {
       </form>
     </Panel>}
     <div className="detail-layout" style={{ marginTop: 15 }}>
-      <Panel title="Personas" subtitle={`${partners.length} en la compañía`} action={<div style={{ position: 'relative' }}><Search size={13} style={{ position: 'absolute', top: 11, left: 10, color: '#89867e' }} /><input className="field" style={{ width: 170, paddingLeft: 29 }} placeholder="Buscar" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-partners" /></div>}>
-        {list.isLoading ? <LoadingRows /> : list.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void list.refetch()} /></div> : partners.length ? <div className="table-wrap"><table className="data-table" style={{ minWidth: 490 }}><thead><tr><th>Nombre</th><th>Aportado</th><th>Gastos directos</th><th>Pendiente</th><th></th></tr></thead><tbody>{partners.map(p => <tr key={p.id} data-testid={`row-partner-${p.id}`} onClick={() => setSelectedId(p.id)} style={{ cursor: 'pointer', background: selectedId === p.id ? '#f4f0e7' : undefined }}><td><strong>{p.name}</strong><div style={{ color: '#89867e', marginTop: 4 }}>{p.email || p.phone || 'Sin contacto'}</div></td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount" style={{ color: p.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(p.balanceDue)}</td><td><button className="button icon-button" aria-label={`Editar ${p.name}`} title="Editar ficha" data-testid={`button-edit-partner-${p.id}`} onClick={e => { e.stopPropagation(); setEditing(p); setOpenForm(true); }}><Settings2 size={14} /></button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin personas" detail="Cargá a alguien de la compañía para llevar sus aportes y devoluciones." action={<button className="button button-primary" onClick={() => setOpenForm(true)}><Plus size={14} /> Añadir socio</button>} />}
+      <Panel title="Miembros" subtitle={`${partners.length} miembros`} action={<div style={{ position: 'relative' }}><Search size={13} style={{ position: 'absolute', top: 11, left: 10, color: '#89867e' }} /><input className="field" style={{ width: 170, paddingLeft: 29 }} placeholder="Buscar" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search-partners" /></div>}>
+        {list.isLoading ? <LoadingRows /> : list.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void list.refetch()} /></div> : partners.length ? <div className="table-wrap"><table className="data-table" style={{ minWidth: 490 }}><thead><tr><th>Nombre</th><th>Aportado</th><th>Gastos directos</th><th>Pendiente</th><th></th></tr></thead><tbody>{partners.map(p => <tr key={p.id} data-testid={`row-partner-${p.id}`} onClick={() => setSelectedId(p.id)} style={{ cursor: 'pointer', background: selectedId === p.id ? '#f4f0e7' : undefined }}><td><strong>{p.name}</strong><div style={{ color: '#89867e', marginTop: 4 }}>{p.email || p.phone || 'Sin contacto'}</div></td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount" style={{ color: p.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(p.balanceDue)}</td><td><button className="button icon-button" aria-label={`Editar ${p.name}`} title="Editar ficha" data-testid={`button-edit-partner-${p.id}`} onClick={e => { e.stopPropagation(); setEditing(p); setOpenForm(true); }}><Settings2 size={14} /></button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin miembros" detail="Cargá un miembro para llevar sus aportes y devoluciones." action={<button className="button button-primary" onClick={() => setOpenForm(true)}><Plus size={14} /> Añadir socio</button>} />}
       </Panel>
-      <Panel title={ledger.data?.partner.name || 'Cuenta'} subtitle={ledger.data ? 'Aportes, gastos pagados y reintegros' : 'Elegí a alguien para ver su cuenta'}>
-        {!selectedId ? <EmptyState title="Cuenta" detail="Elegí a alguien para ver sus movimientos." icon={Wallet} /> : ledger.isLoading ? <LoadingRows /> : ledger.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void ledger.refetch()} /></div> : ledger.data ? <>
-          <div className="balance-card" style={{ margin: 14 }}><div className="eyebrow">Pendiente de reintegro</div><div className="balance-big" style={{ color: ledger.data.partner.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(ledger.data.partner.balanceDue)}</div><p>Gastos pagados por esa persona, menos lo ya devuelto. Los aportes quedan aparte.</p></div>
-          <div className="panel-body">{ledger.data.movements.length ? ledger.data.movements.map(m => <MovementRow key={m.id} movement={m} />) : <EmptyState title="Sin movimientos" detail="Los de esta persona van a aparecer acá." />}</div>
+      <Panel title={ledger.data?.partner.name || 'Cuenta'} subtitle={ledger.data ? 'Aportes, gastos pagados y reintegros' : 'Elegí un miembro para ver su cuenta'}>
+        {!selectedId ? <EmptyState title="Cuenta" detail="Elegí un miembro para ver sus movimientos." icon={Wallet} /> : ledger.isLoading ? <LoadingRows /> : ledger.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void ledger.refetch()} /></div> : ledger.data ? <>
+          <div className="balance-card" style={{ margin: 14 }}><div className="eyebrow">Pendiente de reintegro</div><div className="balance-big" style={{ color: ledger.data.partner.balanceDue > 0 ? '#a65d48' : '#66745a' }}>{currency(ledger.data.partner.balanceDue)}</div><p>Gastos pagados por ese miembro, menos lo ya devuelto. Los aportes quedan aparte.</p></div>
+          <div className="panel-body">{ledger.data.movements.length ? ledger.data.movements.map(m => <MovementRow key={m.id} movement={m} />) : <EmptyState title="Sin movimientos" detail="Los de este miembro van a aparecer acá." />}</div>
         </> : null}
       </Panel>
     </div>
-    {selectedId && ledger.data && <div className="metric-grid" style={{ marginTop: 15 }}><Metric label="Aportes" value={currency(ledger.data.partner.totalContributed)} hint="No son ingresos operativos" icon={ArrowDownLeft} /><Metric label="Gastos directos" value={currency(ledger.data.partner.directExpenses)} hint="Pagados por esa persona" icon={Receipt} /><Metric label="Reintegros" value={currency(ledger.data.partner.reimbursements)} hint="Reducen lo pendiente" icon={Check} /><Metric label="Pendiente" value={currency(ledger.data.partner.balanceDue)} hint="A devolver" icon={HandCoins} dark /></div>}
+    {selectedId && ledger.data && <div className="metric-grid" style={{ marginTop: 15 }}><Metric label="Aportes" value={currency(ledger.data.partner.totalContributed)} hint="No son ingresos operativos" icon={ArrowDownLeft} /><Metric label="Gastos directos" value={currency(ledger.data.partner.directExpenses)} hint="Pagados por el miembro" icon={Receipt} /><Metric label="Reintegros" value={currency(ledger.data.partner.reimbursements)} hint="Reducen lo pendiente" icon={Check} /><Metric label="Pendiente" value={currency(ledger.data.partner.balanceDue)} hint="A devolver" icon={HandCoins} dark /></div>}
   </div>;
 }
 
@@ -508,7 +532,7 @@ function ReportsPage() {
     {report.isLoading ? <div className="metric-grid">{[1, 2, 3].map(i => <div className="metric-card" key={i}><div className="skeleton" /><div className="skeleton" style={{ marginTop: 20, width: '70%', height: 25 }} /></div>)}</div> : result && <>
       <Panel title="Resumen del período" subtitle={`${longDate(from)} — ${longDate(to)}`}>
         <div className="report-total"><div><span>Ingresos operativos</span><strong style={{ color: '#66745a' }}>{currency(result.incomeTotal)}</strong></div><div><span>Gastos operativos</span><strong style={{ color: '#a65d48' }}>{currency(result.expenseTotal)}</strong></div><div><span>Resultado</span><strong>{currency(result.result)}</strong></div><div><span>Gastos generales</span><strong>{currency(result.generalExpenses)}</strong></div></div>
-        <div style={{ padding: '12px 20px', color: '#89867e', fontSize: 10 }}>Los aportes de la compañía no son ingresos. Los gastos que pagó alguien de la compañía sí son gastos. Los reintegros no son gastos.</div>
+        <div style={{ padding: '12px 20px', color: '#89867e', fontSize: 10 }}>Los aportes de los miembros no son ingresos. Los gastos que pagó un miembro sí son gastos. Los reintegros no son gastos.</div>
       </Panel>
       <div className="dashboard-grid" style={{ marginTop: 15 }}>
         <Panel title="Gastos por categoría" subtitle="Distribución del gasto operativo">
@@ -518,11 +542,11 @@ function ReportsPage() {
           <div className="panel-body">{result.activities.length ? result.activities.map(activity => <Link key={activity.activityId} href={`/actividades/${activity.activityId}`} className="list-row" style={{ textDecoration: 'none' }} data-testid={`row-report-activity-${activity.activityId}`}><div className="row-main"><div className="row-title">{activity.activityName}</div><div className="row-detail">{shortDate(activity.date)} · Ingresos {currency(activity.income)} · Gastos {currency(activity.expense)}</div></div><div className="row-trailing">{currency(activity.result)}</div></Link>) : <EmptyState title="Sin movimientos en actividades" detail="Cuando un movimiento tenga actividad, el resultado aparece acá." />}</div>
         </Panel>
       </div>
-      <Panel title="Cuentas de la compañía" subtitle="Gastos directos y lo pendiente" className="report-partners" >
-        {result.partners.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Nombre</th><th>Aportado</th><th>Gastos pagados directamente</th><th>Reintegrado</th><th>Pendiente</th></tr></thead><tbody>{result.partners.map(p => <tr key={p.id}><td>{p.name}</td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount">{currency(p.reimbursements)}</td><td className="amount">{currency(p.balanceDue)}</td></tr>)}</tbody></table></div> : <EmptyState title="Sin cuentas" detail="No hay movimientos de la compañía en este período." />}
+      <Panel title="Cuentas de los miembros" subtitle="Gastos directos y lo pendiente" className="report-partners" >
+        {result.partners.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Nombre</th><th>Aportado</th><th>Gastos pagados directamente</th><th>Reintegrado</th><th>Pendiente</th></tr></thead><tbody>{result.partners.map(p => <tr key={p.id}><td>{p.name}</td><td className="amount">{currency(p.totalContributed)}</td><td className="amount">{currency(p.directExpenses)}</td><td className="amount">{currency(p.reimbursements)}</td><td className="amount">{currency(p.balanceDue)}</td></tr>)}</tbody></table></div> : <EmptyState title="Sin cuentas" detail="No hay movimientos de miembros en este período." />}
       </Panel>
       <Panel title="Evolución de lo pendiente" subtitle="Lo que hay que devolver" >
-        {result.debtHistory.length ? <div className="chart-bars">{result.debtHistory.slice(-12).map((point, i) => <div className="bar-group" key={`${point.date}-${i}`}><div className="bar" style={{ height: `${Math.max(4, point.amount / Math.max(1, ...result.debtHistory.map(d => d.amount)) * 85)}%` }} /><span className="chart-label">{shortDate(point.date)}</span></div>)}</div> : <EmptyState title="Sin deuda en el período" detail="Aparece cuando alguien de la compañía pague un gasto o haya un reintegro." /> }
+        {result.debtHistory.length ? <div className="chart-bars">{result.debtHistory.slice(-12).map((point, i) => <div className="bar-group" key={`${point.date}-${i}`}><div className="bar" style={{ height: `${Math.max(4, point.amount / Math.max(1, ...result.debtHistory.map(d => d.amount)) * 85)}%` }} /><span className="chart-label">{shortDate(point.date)}</span></div>)}</div> : <EmptyState title="Sin deuda en el período" detail="Aparece cuando un miembro pague un gasto o haya un reintegro." /> }
         <div style={{ height: 30 }} />
       </Panel>
     </>}
