@@ -1,5 +1,5 @@
 /**
- * Espacio Vergara — hoja de cálculo.
+ * Casa Lupanal — hoja de cálculo.
  *
  * Pegar este archivo completo en Extensiones → Apps Script, reemplazando Código.gs.
  * El script tiene que crearse desde la hoja (no como proyecto suelto).
@@ -54,7 +54,7 @@ function preparar() {
 }
 
 function doGet() {
-  return json({ ok: true, service: "Espacio Vergara" });
+  return json({ ok: true, service: "Casa Lupanal" });
 }
 
 function doPost(e) {
@@ -602,7 +602,7 @@ function validateMovement(input) {
     throw new Error("Los aportes, gastos cubiertos y devoluciones deben tener un miembro.");
   }
   if (!needsPartner && partnerId !== "") {
-    throw new Error("Los ingresos y gastos del espacio no llevan miembro.");
+    throw new Error("Los ingresos y gastos de la casa no llevan miembro.");
   }
   if (categoryId !== "") {
     var category = findById(rows("Categorias"), categoryId);
