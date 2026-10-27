@@ -184,14 +184,14 @@ function SignInPage() {
     }
   }
   return <div className="auth-screen">
-    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Ingreso</div><h1>Agenda, movimientos y miembros.</h1><p>Usuario y contraseña de la compañía.</p></div><span className="eyebrow">Uso interno</span></aside>
+    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Ingreso</div><h1>Agenda, movimientos y miembros.</h1><p>Tu nombre y la contraseña de la casa.</p></div><span className="eyebrow">Uso interno</span></aside>
     <div className="auth-form-side"><div className="auth-card">
       <Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link>
       <div style={{ height: 28 }} />
       <h2>Ingreso</h2>
-      <p>Usuario y contraseña de la compañía.</p>
+      <p>Tu nombre y la contraseña de la casa.</p>
       <form onSubmit={event => { event.preventDefault(); void submit(event.currentTarget); }} style={{ display: 'grid', gap: 12 }}>
-        <Field label="Usuario"><input className="field" name="user" required autoComplete="username" data-testid="input-user" /></Field>
+        <Field label="Nombre"><input className="field" name="user" required autoComplete="username" data-testid="input-user" /></Field>
         <Field label="Contraseña"><input className="field" name="password" type="password" required autoComplete="current-password" data-testid="input-password" /></Field>
         {error && <div className="error-note">{error}</div>}
         <button className="button button-primary" disabled={pending} data-testid="button-sign-in">{pending ? 'Entrando…' : 'Entrar'}</button>
@@ -247,7 +247,7 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb"><span style={{ color: '#A39E94' }}>Casa Lupanal</span><span style={{ padding: '0 8px' }}>/</span>{navItems.find(item => item.path === `/${page}`)?.label || 'Actividad'}</div>
-          <div className="topbar-right"><span className="today-chip">{new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}</span></div>
+          <div className="topbar-right"><span className="today-chip">{session?.user || 'Casa Lupanal'}</span></div>
         </header>
         {children}
       </main>

@@ -4,11 +4,8 @@
  * Pegar este archivo completo en Extensiones → Apps Script, reemplazando Código.gs.
  * El script tiene que crearse desde la hoja (no como proyecto suelto).
  *
- * Antes de publicar, en el editor:
- *   Configuración del proyecto → Propiedades del script
- *     APP_USER      = usuario compartido
- *     APP_PASSWORD  = contraseña compartida
- *   Elegir la función preparar y ejecutarla una vez.
+ * En esta prueba el nombre no se controla. La contraseña sí.
+ * Elegir la función preparar y ejecutarla una vez.
  *   Implementar → Nueva implementación → Aplicación web
  *     Ejecutar como: Yo
  *     Quién tiene acceso: Cualquier persona
@@ -111,15 +108,8 @@ function handle(body) {
 }
 
 function checkAuth(user, password) {
-  var props = PropertiesService.getScriptProperties();
-  var expectedUser = props.getProperty("APP_USER");
-  var expectedPassword = props.getProperty("APP_PASSWORD");
-  if (!expectedUser || !expectedPassword) {
-    return "Falta APP_USER o APP_PASSWORD en las propiedades del script.";
-  }
-  if (String(user || "") !== expectedUser || String(password || "") !== expectedPassword) {
-    return "Usuario o contraseña incorrectos.";
-  }
+  if (!String(user || "").trim()) return "Escribí tu nombre.";
+  if (String(password || "") !== "pela") return "Contraseña incorrecta.";
   return null;
 }
 
