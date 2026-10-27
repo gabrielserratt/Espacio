@@ -247,7 +247,7 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb"><span style={{ color: '#A39E94' }}>Casa Lupanal</span><span style={{ padding: '0 8px' }}>/</span>{navItems.find(item => item.path === `/${page}`)?.label || 'Actividad'}</div>
-          <div className="topbar-right"><span className="today-chip">{session?.user || 'Casa Lupanal'}</span></div>
+          <div className="topbar-right" data-testid="text-signed-in-user"><span className="today-chip">{session?.user || 'Casa Lupanal'}</span></div>
         </header>
         {children}
       </main>
