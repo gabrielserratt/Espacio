@@ -134,8 +134,12 @@ function ensureSheets() {
 }
 
 function markTextColumns(ss) {
-  textColumn(ss.getSheetByName("Actividades"), 4);
+  var activities = ss.getSheetByName("Actividades");
+  textColumn(activities, 4);
+  textColumn(activities, 5);
+  textColumn(activities, 6);
   textColumn(ss.getSheetByName("Movimientos"), 3);
+  normalizeActivityTimes(activities);
 }
 
 function textColumn(sheet, column) {
@@ -188,6 +192,38 @@ function asDate(value) {
   var raw = String(value || "").trim();
   if (!raw) return "";
   return raw.slice(0, 10);
+}
+
+function asTime(value) {
+  if (value == null || value === "") return "";
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return ("0" + value.getHours()).slice(-2) + ":" + ("0" + value.getMinutes()).slice(-2);
+  }
+  if (typeof value === "number" && isFinite(value)) {
+    var minutes = Math.round((((value % 1) + 1) % 1) * 24 * 60);
+    return ("0" + Math.floor(minutes / 60)).slice(-2) + ":" + ("0" + (minutes % 60)).slice(-2);
+  }
+  var match = String(value).trim().match(/(\d{1,2}):(\d{2})/);
+  if (!match) return "";
+  return ("0" + Number(match[1])).slice(-2) + ":" + match[2];
+}
+
+function normalizeActivityTimes(sheet) {
+  var last = sheet.getLastRow();
+  if (last < 2) return;
+  var range = sheet.getRange(2, 5, last - 1, 2);
+  var values = range.getValues();
+  var changed = false;
+  var next = values.map(function (row) {
+    return row.map(function (value) {
+      var time = asTime(value);
+      if (String(value || "") !== time) changed = true;
+      return time;
+    });
+  });
+  if (!changed) return;
+  range.setNumberFormat("@");
+  range.setValues(next);
 }
 
 function asBool(value) {
@@ -261,8 +297,8 @@ function mapActivity(row) {
     name: text(row.nombre),
     type: text(row.tipo),
     date: asDate(row.fecha),
-    startTime: text(row.inicio),
-    endTime: text(row.fin),
+    startTime: asTime(row.inicio) || null,
+    endTime: asTime(row.fin) || null,
     responsible: text(row.responsable),
     status: text(row.estado) || "scheduled",
     description: text(row.descripcion),
@@ -444,8 +480,8 @@ function activityRow(id, input, created, recurrenceGroup) {
     requireText(input.name || input.nombre, "La actividad necesita un nombre."),
     type,
     asDate(input.date || input.fecha),
-    text(input.startTime || input.inicio) || "",
-    text(input.endTime || input.fin) || "",
+    asTime(input.startTime || input.inicio),
+    asTime(input.endTime || input.fin),
     text(input.responsible || input.responsable) || "",
     status,
     text(input.description || input.descripcion) || "",
