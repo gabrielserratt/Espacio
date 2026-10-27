@@ -7,12 +7,11 @@ import {
 } from 'lucide-react';
 import {
   getGetActivityQueryKey, getGetDashboardQueryKey, getGetPartnerLedgerQueryKey,
-  getGetReportsQueryKey, getListActivitiesQueryKey, getListCategoriesQueryKey,
-  getListMovementsQueryKey, getListPartnersQueryKey, getExportMovementsCsvQueryKey,
+  getGetReportsQueryKey, getListActivitiesQueryKey, getMovementsScreenQueryKey,
+  getListPartnersQueryKey, getExportMovementsCsvQueryKey,
   useCancelActivity, useCreateActivity, useCreateCategory, useCreateMovement, useCreatePartner,
   useDuplicateActivity, useExportMovementsCsv, useGetActivity, useGetDashboard, useGetPartnerLedger,
-  useGetReports, useHealthCheck, useListActivities, useListCategories,
-  useListMovements, useListPartners, useUpdateActivity,
+  useGetReports, useListActivities, useListPartners, useMovementsScreen, useUpdateActivity,
   useUpdateMovement, useUpdatePartner, useVoidMovement,
 } from '@/lib/use-sheet';
 import {
@@ -28,7 +27,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000, refetchOnWindowFocus: false, retry: 1 } },
+});
 
 const SessionContext = createContext<{
   session: Session | null;
@@ -230,7 +231,6 @@ const navItems = [
 function AppShell({ page, children }: { page: string; children: ReactNode }) {
   const { session, signOut } = useSession();
   const [, setLocation] = useLocation();
-  const { data: health, isError: healthError } = useHealthCheck();
   const initials = (session?.user?.[0] || 'V').toUpperCase();
   return <div className="workspace">
     <div className="app-shell">
@@ -241,13 +241,13 @@ function AppShell({ page, children }: { page: string; children: ReactNode }) {
         </nav></div>
         <div className="sidebar-bottom">
           <div className="venue-note"><strong>Uso interno</strong>Agenda, movimientos y cuentas de los miembros.</div>
-          <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{session?.user || 'Casa Lupanal'}<small>{health?.status === 'ok' ? 'Casa conectada' : 'Equipo administrador'}</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button></div>
+          <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{session?.user || 'Casa Lupanal'}<small>Casa conectada</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button></div>
         </div>
       </aside>
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb"><span style={{ color: '#A39E94' }}>Casa Lupanal</span><span style={{ padding: '0 8px' }}>/</span>{navItems.find(item => item.path === `/${page}`)?.label || 'Actividad'}</div>
-          <div className="topbar-right"><span className="today-chip">{new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}</span><span className="health-dot" data-testid="status-health" title={healthError ? 'Sin conexión' : 'Conectado'}><i /> {healthError ? 'Sin conexión' : 'Conectado'}</span></div>
+          <div className="topbar-right"><span className="today-chip">{new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}</span></div>
         </header>
         {children}
       </main>
@@ -393,16 +393,14 @@ function MovementsPage() {
   const [includeVoided, setIncludeVoided] = useState(false);
   const [search, setSearch] = useState('');
   const params = useMemo(() => ({ includeVoided }), [includeVoided]);
-  const query = useListMovements(params);
-  const categoriesQuery = useListCategories();
-  const partnersQuery = useListPartners();
-  const activitiesQuery = useListActivities();
+  const screen = useMovementsScreen(params);
   const create = useCreateMovement();
   const update = useUpdateMovement();
   const voidMovement = useVoidMovement();
   const createCategory = useCreateCategory();
-  const refresh = () => { void qc.invalidateQueries({ queryKey: getListMovementsQueryKey() }); void qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); void qc.invalidateQueries({ queryKey: getListPartnersQueryKey() }); };
-  const filtered = (query.data || []).filter(m => (kind === 'all' || m.type === kind) && `${m.concept} ${m.partnerName || ''} ${m.activityName || ''}`.toLowerCase().includes(search.toLowerCase()));
+  const refresh = () => { void qc.invalidateQueries({ queryKey: getMovementsScreenQueryKey() }); void qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); void qc.invalidateQueries({ queryKey: getListPartnersQueryKey() }); };
+  const movements = screen.data?.movements || [];
+  const filtered = movements.filter(m => (kind === 'all' || m.type === kind) && `${m.concept} ${m.partnerName || ''} ${m.activityName || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openNew = () => { setEditing(null); setShowForm(true); };
   const editMovement = (movement: Movement) => { setEditing(movement); setShowForm(true); };
   function submitMovement(form: HTMLFormElement) {
@@ -430,9 +428,9 @@ function MovementsPage() {
         {showCategoryForm && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, padding: 12, border: '1px solid #E6E0D4', borderRadius: 8 }}>
           <input className="field" placeholder="Nombre de categoría" value={newCategory} onChange={e => setNewCategory(e.target.value)} aria-label="Nombre de categoría" data-testid="input-new-category" />
           <select className="select-field" value={categoryAppliesTo} onChange={e => setCategoryAppliesTo(e.target.value as typeof categoryAppliesTo)} aria-label="Aplicación de la categoría" data-testid="select-category-applies-to"><option value="expense">Gastos</option><option value="income">Ingresos</option><option value="both">Ambos</option></select>
-          <button type="button" className="button" disabled={!newCategory.trim() || createCategory.isPending} onClick={() => createCategory.mutate({ data: { name: newCategory.trim(), appliesTo: categoryAppliesTo } }, { onSuccess: () => { void qc.invalidateQueries({ queryKey: getListCategoriesQueryKey() }); setNewCategory(''); setShowCategoryForm(false); } })} data-testid="button-save-category">{createCategory.isPending ? 'Guardando…' : 'Guardar categoría'}</button>
+          <button type="button" className="button" disabled={!newCategory.trim() || createCategory.isPending} onClick={() => createCategory.mutate({ data: { name: newCategory.trim(), appliesTo: categoryAppliesTo } }, { onSuccess: () => { void qc.invalidateQueries({ queryKey: getMovementsScreenQueryKey() }); setNewCategory(''); setShowCategoryForm(false); } })} data-testid="button-save-category">{createCategory.isPending ? 'Guardando…' : 'Guardar categoría'}</button>
         </div>}
-        <MovementFields movement={editing || undefined} categories={categoriesQuery.data || []} partners={partnersQuery.data || []} activities={activitiesQuery.data || []} />
+        <MovementFields movement={editing || undefined} categories={screen.data?.categories || []} partners={screen.data?.partners || []} activities={screen.data?.activities || []} />
         <div className="form-actions"><button type="button" className="button" onClick={() => setShowForm(false)}>Cancelar</button><button className="button button-primary" disabled={create.isPending || update.isPending} data-testid="button-save-movement">{create.isPending || update.isPending ? 'Guardando…' : 'Guardar movimiento'}</button></div>
         {(create.isError || update.isError) && <div className="error-note" style={{ marginTop: 12 }}>{errorText(create.error || update.error)}</div>}
       </form>
@@ -443,7 +441,7 @@ function MovementsPage() {
         <select className="select-field" value={kind} onChange={e => setKind(e.target.value)} data-testid="select-movement-type"><option value="all">Todos los tipos</option>{Object.keys(typeLabels).slice(0, 5).map(type => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>
         <label style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#6F6A62', fontSize: 11 }}><input type="checkbox" checked={includeVoided} onChange={e => setIncludeVoided(e.target.checked)} data-testid="checkbox-include-voided" /> Mostrar anulados</label>
       </div>
-      {query.isLoading ? <LoadingRows /> : query.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void query.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / miembro</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#8A8478', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#8A8478', marginTop: 4 }}>{m.partnerName}</div>}</td><td className="amount"><span className={`amount-chip ${m.status === 'voided' ? 'voided' : ['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{m.status === 'voided' ? 'Anulado' : `${['income','partner_contribution','reimbursement'].includes(m.type) ? '+' : '−'}${currency(m.amount)}`}</span></td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Sin movimientos" detail="Cargá un ingreso o un gasto para llevar las cuentas." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
+      {screen.isLoading ? <LoadingRows /> : screen.isError ? <div style={{ padding: 16 }}><QueryError retry={() => void screen.refetch()} /></div> : filtered.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Actividad / miembro</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(m => <tr key={m.id} data-testid={`row-movement-${m.id}`}><td>{shortDate(m.date)}</td><td><strong>{m.concept}</strong>{m.categoryName && <div style={{ color: '#8A8478', marginTop: 4 }}>{m.categoryName}</div>}</td><td>{typeLabels[m.type] || m.type}</td><td>{m.activityName || '—'}{m.partnerName && <div style={{ color: '#8A8478', marginTop: 4 }}>{m.partnerName}</div>}</td><td className="amount"><span className={`amount-chip ${m.status === 'voided' ? 'voided' : ['income','partner_contribution','reimbursement'].includes(m.type) ? 'positive' : 'negative'}`}>{m.status === 'voided' ? 'Anulado' : `${['income','partner_contribution','reimbursement'].includes(m.type) ? '+' : '−'}${currency(m.amount)}`}</span></td><td><span className={`status-pill ${m.status === 'voided' ? 'voided' : 'scheduled'}`}>{m.status === 'voided' ? 'Anulado' : 'Activo'}</span></td><td><div className="actions"><button className="button icon-button" title="Editar" aria-label={`Editar ${m.concept}`} data-testid={`button-edit-movement-${m.id}`} disabled={m.status === 'voided'} onClick={() => editMovement(m)}><Settings2 size={14} /></button>{m.status === 'active' && <button className="button icon-button button-danger" title="Anular" aria-label={`Anular ${m.concept}`} data-testid={`button-void-movement-${m.id}`} onClick={() => { const reason = window.prompt('Motivo de la anulación (se conserva el historial):'); if (reason?.trim()) voidMovement.mutate({ id: m.id, data: { reason: reason.trim() } }, { onSuccess: refresh }); }}><X size={14} /></button>}</div></td></tr>)}</tbody></table></div> : <EmptyState title="Sin movimientos" detail="Cargá un ingreso o un gasto para llevar las cuentas." action={<button className="button button-primary" onClick={openNew}><Plus size={14} /> Registrar movimiento</button>} />}
     </Panel>
   </div>;
 }

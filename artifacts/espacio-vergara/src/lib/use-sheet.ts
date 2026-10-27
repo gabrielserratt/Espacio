@@ -13,6 +13,7 @@ import {
 export const getGetDashboardQueryKey = () => ['dashboard'] as const;
 export const getListActivitiesQueryKey = () => ['activities'] as const;
 export const getListMovementsQueryKey = () => ['movements'] as const;
+export const getMovementsScreenQueryKey = () => ['movements-screen'] as const;
 export const getListPartnersQueryKey = () => ['partners'] as const;
 export const getListCategoriesQueryKey = () => ['categories'] as const;
 export const getGetPartnerLedgerQueryKey = (id: number) => ['partner-ledger', id] as const;
@@ -54,6 +55,13 @@ export function useCreateCategory() {
 
 export function useListMovements(params: { includeVoided?: boolean }) {
   return useQuery({ queryKey: [...getListMovementsQueryKey(), params], queryFn: () => sheet<Movement[]>('listMovements', params) });
+}
+
+export function useMovementsScreen(params: { includeVoided?: boolean }) {
+  return useQuery({
+    queryKey: [...getMovementsScreenQueryKey(), params],
+    queryFn: () => sheet<MovementsScreen>('movementsScreen', params),
+  });
 }
 
 export function useCreateMovement() {
@@ -118,6 +126,13 @@ export function useHealthCheck() {
     retry: false,
   });
 }
+
+type MovementsScreen = {
+  movements: Movement[];
+  categories: Category[];
+  partners: Partner[];
+  activities: Activity[];
+};
 
 type Dashboard = {
   monthIncome: number;

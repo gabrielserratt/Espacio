@@ -18,10 +18,23 @@
  * Acciones: login, dashboard, listPartners, createPartner, updatePartner,
  * partnerLedger, listActivities, createActivity, getActivity, updateActivity,
  * duplicateActivity, cancelActivity, listCategories, createCategory,
- * listMovements, createMovement, updateMovement, voidMovement, reports, exportCsv.
+ * listMovements, movementsScreen, createMovement, updateMovement, voidMovement, reports, exportCsv.
  */
 
 var TZ = "America/Argentina/Buenos_Aires";
+var ROW_CACHE = {};
+var WRITE_ACTIONS = {
+  createPartner: true,
+  updatePartner: true,
+  createActivity: true,
+  updateActivity: true,
+  duplicateActivity: true,
+  cancelActivity: true,
+  createCategory: true,
+  createMovement: true,
+  updateMovement: true,
+  voidMovement: true
+};
 
 var SHEETS = {
   Socios: ["id", "nombre", "email", "telefono", "notas", "creado", "actualizado"],
@@ -50,7 +63,7 @@ var DEFAULT_CATEGORIES = [
 ];
 
 function preparar() {
-  ensureSheets();
+  ensureSheets(true);
 }
 
 function doGet() {
@@ -58,11 +71,12 @@ function doGet() {
 }
 
 function doPost(e) {
+  ROW_CACHE = {};
   try {
     var body = JSON.parse((e.postData && e.postData.contents) || "{}");
     var authError = checkAuth(body.user, body.password);
     if (authError) return json({ ok: false, error: authError });
-    ensureSheets();
+    if (WRITE_ACTIONS[body.action]) ensureSheets(false);
     return json({ ok: true, data: handle(body) });
   } catch (err) {
     return json({ ok: false, error: err.message || String(err) });
@@ -87,6 +101,7 @@ function handle(body) {
   if (action === "listCategories") return listCategories();
   if (action === "createCategory") return createCategory(data);
   if (action === "listMovements") return listMovements(body);
+  if (action === "movementsScreen") return movementsScreen(body);
   if (action === "createMovement") return createMovement(data);
   if (action === "updateMovement") return updateMovement(body.id, data);
   if (action === "voidMovement") return voidMovement(body.id, data.reason || body.reason);
@@ -108,7 +123,7 @@ function checkAuth(user, password) {
   return null;
 }
 
-function ensureSheets() {
+function ensureSheets(formatColumns) {
   var ss = SpreadsheetApp.getActive();
   if (!ss) throw new Error("Abrí el script desde la hoja de cálculo.");
   Object.keys(SHEETS).forEach(function (name) {
@@ -130,7 +145,7 @@ function ensureSheets() {
     var extra = ss.getSheetByName(name);
     if (extra && extra.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(extra);
   });
-  markTextColumns(ss);
+  if (formatColumns) markTextColumns(ss);
 }
 
 function markTextColumns(ss) {
@@ -147,6 +162,7 @@ function textColumn(sheet, column) {
 }
 
 function writeRow(sheet, values) {
+  ROW_CACHE = {};
   var row = Math.max(sheet.getLastRow(), 1) + 1;
   var range = sheet.getRange(row, 1, 1, values.length);
   range.setValues([values]);
@@ -154,21 +170,29 @@ function writeRow(sheet, values) {
 }
 
 function replaceRow(sheet, row, values) {
+  ROW_CACHE = {};
   sheet.getRange(row, 1, 1, values.length).setValues([values]);
 }
 
 function rows(name) {
+  if (Object.prototype.hasOwnProperty.call(ROW_CACHE, name)) return ROW_CACHE[name];
   var sheet = SpreadsheetApp.getActive().getSheetByName(name);
+  if (!sheet) throw new Error("Falta la hoja " + name + ". En Apps Script, ejecutá preparar.");
   var headers = SHEETS[name];
   var last = sheet.getLastRow();
-  if (last < 2) return [];
-  return sheet.getRange(2, 1, last - 1, headers.length).getValues().map(function (row, index) {
+  if (last < 2) {
+    ROW_CACHE[name] = [];
+    return ROW_CACHE[name];
+  }
+  var result = sheet.getRange(2, 1, last - 1, headers.length).getValues().map(function (row, index) {
     var obj = { _row: index + 2 };
     headers.forEach(function (header, column) { obj[header] = row[column]; });
     return obj;
   }).filter(function (row) {
     return row.id !== "" && row.id != null;
   });
+  ROW_CACHE[name] = result;
+  return result;
 }
 
 function rowNumber(name, id) {
@@ -509,7 +533,7 @@ function createActivity(input) {
     copy.date = date;
     var stamp = nowIso();
     var written = writeRow(sheet, activityRow(id, copy, stamp, group));
-    sheet.getRange(written, 4).setNumberFormat("@");
+    sheet.getRange(written, 4, 1, 3).setNumberFormat("@");
     created.push(mapActivity(findById(rows("Actividades"), id)));
   }
   return created;
@@ -551,7 +575,7 @@ function updateActivity(id, input) {
   var sheet = SpreadsheetApp.getActive().getSheetByName("Actividades");
   var row = rowNumber("Actividades", id);
   replaceRow(sheet, row, activityRow(Number(id), merged, current.creado, text(current.repeticion) || ""));
-  sheet.getRange(row, 4).setNumberFormat("@");
+  sheet.getRange(row, 4, 1, 3).setNumberFormat("@");
   return mapActivity(findById(rows("Actividades"), id));
 }
 
@@ -576,7 +600,7 @@ function duplicateActivity(id, date) {
     notes: source.notas,
     pendingTasks: pending
   }, nowIso(), ""));
-  sheet.getRange(written, 4).setNumberFormat("@");
+  sheet.getRange(written, 4, 1, 3).setNumberFormat("@");
   return mapActivity(findById(rows("Actividades"), newId));
 }
 
@@ -615,6 +639,15 @@ function listMovements(body) {
     type: body.type || undefined,
     includeVoided: body.includeVoided === true
   });
+}
+
+function movementsScreen(body) {
+  return {
+    movements: listMovements(body),
+    categories: listCategories(),
+    partners: partnerSummaries(),
+    activities: listActivities()
+  };
 }
 
 function nullableId(value) {
@@ -739,9 +772,9 @@ function dashboard() {
   var today = todayBA();
   var monthStart = today.slice(0, 7) + "-01";
   var yearStart = today.slice(0, 4) + "-01-01";
-  var month = operatingTotals(movementViews({ from: monthStart, to: today }));
-  var year = operatingTotals(movementViews({ from: yearStart, to: today }));
-  var recent = movementViews({ includeVoided: false }).slice(0, 8);
+  var active = movementViews({ includeVoided: false });
+  var month = operatingTotals(active.filter(function (row) { return row.date >= monthStart && row.date <= today; }));
+  var year = operatingTotals(active.filter(function (row) { return row.date >= yearStart && row.date <= today; }));
   var upcoming = listActivities(today, null).filter(function (row) {
     return row.status === "scheduled";
   }).slice(0, 6);
@@ -750,9 +783,9 @@ function dashboard() {
     monthExpenses: month.expenses,
     monthResult: month.result,
     accumulatedResult: year.result,
-    partnerDebt: debtFrom(movementViews({ includeVoided: false })),
+    partnerDebt: debtFrom(active),
     upcomingActivities: upcoming,
-    recentMovements: recent
+    recentMovements: active.slice(0, 8)
   };
 }
 
