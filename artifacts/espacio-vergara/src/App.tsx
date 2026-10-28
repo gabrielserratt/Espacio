@@ -117,7 +117,7 @@ const notebookOrder = (a: Movement, b: Movement) => a.date === b.date ? a.id - b
 const notebookLabel = (movement: Movement) => movement.type !== 'income' && movement.partnerName ? `${movement.partnerName} - ${movement.concept}` : movement.concept;
 const notebookCents = (value: number) => Math.round(value * 100) / 100;
 function pendingNotebookExpenses(lines: Movement[]) {
-  const open = lines.filter(movement => movement.type === 'expense' || movement.type === 'partner_expense').sort(notebookOrder).map(movement => ({ movement, remaining: movement.amount }));
+  const open = lines.filter(movement => movement.type === 'partner_expense').sort(notebookOrder).map(movement => ({ movement, remaining: movement.amount }));
   const repayments = lines.filter(movement => movement.type === 'reimbursement').sort(notebookOrder);
   for (const repayment of repayments) {
     let credit = repayment.amount;
@@ -433,7 +433,7 @@ function NotebookPage() {
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
-  const lines = (screen.data?.movements || []).filter(movement => movement.origin === 'pachu');
+  const lines = screen.data?.movements || [];
   const incomeLines = lines.filter(movement => movement.type === 'income').sort(notebookOrder);
   const recentIncomes = incomeLines.slice(-3);
   const expenseLines = lines.filter(movement => movement.type === 'expense' || movement.type === 'partner_expense');
