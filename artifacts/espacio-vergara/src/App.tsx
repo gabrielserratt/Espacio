@@ -115,6 +115,27 @@ const notebookMoney = (amount: number) => {
 };
 const notebookOrder = (a: Movement, b: Movement) => a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1;
 const notebookLabel = (movement: Movement) => movement.type !== 'income' && movement.partnerName ? `${movement.partnerName} - ${movement.concept}` : movement.concept;
+const notebookCents = (value: number) => Math.round(value * 100) / 100;
+function pendingNotebookExpenses(lines: Movement[]) {
+  const open = lines.filter(movement => movement.type === 'expense' || movement.type === 'partner_expense').sort(notebookOrder).map(movement => ({ movement, remaining: movement.amount }));
+  const repayments = lines.filter(movement => movement.type === 'reimbursement').sort(notebookOrder);
+  for (const repayment of repayments) {
+    let credit = repayment.amount;
+    const apply = (matches: (movement: Movement) => boolean) => {
+      for (const line of open) {
+        if (credit <= 0) return;
+        if (line.remaining <= 0 || !matches(line.movement)) continue;
+        const used = Math.min(credit, line.remaining);
+        line.remaining = notebookCents(line.remaining - used);
+        credit = notebookCents(credit - used);
+      }
+    };
+    const concept = repayment.concept.trim().toLowerCase();
+    apply(movement => movement.partnerId != null && movement.partnerId === repayment.partnerId && movement.concept.trim().toLowerCase() === concept);
+    apply(movement => movement.partnerId != null && movement.partnerId === repayment.partnerId);
+  }
+  return open.filter(line => line.remaining > 0);
+}
 const clockTime = (value?: string | null) => {
   const match = String(value || '').match(/(\d{1,2}):(\d{2})/);
   if (!match) return '';
@@ -413,10 +434,11 @@ function NotebookPage() {
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
   const lines = (screen.data?.movements || []).filter(movement => movement.origin === 'pachu');
-  const incomes = lines.filter(movement => movement.type === 'income').sort(notebookOrder);
-  const expenses = lines.filter(movement => movement.type === 'expense' || movement.type === 'partner_expense').sort(notebookOrder);
-  const returned = lines.filter(movement => movement.type === 'reimbursement').sort(notebookOrder);
-  const saldo = incomes.reduce((total, movement) => total + movement.amount, 0) - expenses.reduce((total, movement) => total + movement.amount, 0);
+  const incomeLines = lines.filter(movement => movement.type === 'income').sort(notebookOrder);
+  const recentIncomes = incomeLines.slice(-3);
+  const expenseLines = lines.filter(movement => movement.type === 'expense' || movement.type === 'partner_expense');
+  const pending = pendingNotebookExpenses(lines);
+  const saldo = incomeLines.reduce((total, movement) => total + movement.amount, 0) - expenseLines.reduce((total, movement) => total + movement.amount, 0);
   const needsMember = kind === 'expense' || kind === 'back';
   const partners = [...(screen.data?.partners || [])].sort((a, b) => a.name.localeCompare(b.name, 'es'));
   const choose = (next: 'income' | 'expense' | 'back') => { setKind(next); setError(''); };
@@ -479,25 +501,21 @@ function NotebookPage() {
         </div>
       </form>}
       {screen.isLoading ? <p className="notebook-wait">Abriendo el cuaderno…</p> : screen.isError ? <QueryError retry={() => void screen.refetch()} /> : <>
-        <div className="notebook-heading">Ingresos:</div>
-        {incomes.map(movement => <NotebookRow key={movement.id} movement={movement} />)}
+        <div className="notebook-heading">Últimos ingresos:</div>
+        {recentIncomes.map(movement => <NotebookRow key={movement.id} movement={movement} amount={movement.amount} />)}
         <div className="notebook-heading">Gastos:</div>
-        {expenses.map(movement => <NotebookRow key={movement.id} movement={movement} negative />)}
-        {returned.length > 0 && <>
-          <div className="notebook-heading">Devuelto:</div>
-          {returned.map(movement => <NotebookRow key={movement.id} movement={movement} negative />)}
-        </>}
+        {pending.map(line => <NotebookRow key={line.movement.id} movement={line.movement} amount={-line.remaining} />)}
         <div className="notebook-saldo"><span>Saldo:</span><strong data-testid="text-notebook-saldo">{notebookMoney(saldo)}</strong></div>
       </>}
     </div>
   </div>;
 }
 
-function NotebookRow({ movement, negative = false }: { movement: Movement; negative?: boolean }) {
+function NotebookRow({ movement, amount }: { movement: Movement; amount: number }) {
   return <div className="notebook-row" data-testid={`row-notebook-${movement.id}`}>
     <span>{slashDate(movement.date)}</span>
     <span>{notebookLabel(movement)}</span>
-    <span>{notebookMoney(negative ? -movement.amount : movement.amount)}</span>
+    <span>{notebookMoney(amount)}</span>
   </div>;
 }
 
