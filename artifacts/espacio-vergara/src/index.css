@@ -727,8 +727,9 @@
   .notebook-paper { padding:20px 14px 28px 42px; }
   .notebook-paper::before { left:28px; }
   .notebook-paper h1 { font-size:28px; }
+  .notebook-choices { gap:8px; }
   .notebook-form { grid-template-columns:minmax(0,1fr); }
-  .notebook-blob { min-width:0; flex:1 1 140px; }
+  .notebook-choices .notebook-blob { flex:1 1 0; min-width:0; min-height:52px; padding:8px 6px; font-size:15px; line-height:1.15; }
   .notebook-row { grid-template-columns:52px minmax(0,1fr) auto; gap:8px; font-size:18px; }
   .mobile-nav a span { display:block; max-width:68px; text-align:center; line-height:1.15; }
 }
