@@ -1,9 +1,9 @@
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays,
   Check, CircleDollarSign, ClipboardList, Download, FileText, HandCoins, HeartHandshake,
-  LayoutDashboard, LogOut, Plus, Receipt, Search, Settings2, Users, Wallet, X,
+  BookOpen, LayoutDashboard, LogOut, Plus, Receipt, Search, Settings2, Users, Wallet, X,
 } from 'lucide-react';
 import {
   getGetActivityQueryKey, getGetDashboardQueryKey, getGetPartnerLedgerQueryKey,
@@ -96,6 +96,25 @@ const parseAmount = (value: string) => Number(value.replace(/\./g, '').replace('
 const shortDate = (date?: string | null) => date ? new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(`${date.slice(0, 10)}T12:00:00`)) : '—';
 const longDate = (date?: string | null) => date ? new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${date.slice(0, 10)}T12:00:00`)) : '—';
 const todayString = () => new Date().toISOString().slice(0, 10);
+const notebookToday = () => {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const pick = (type: string) => parts.find(part => part.type === type)?.value || '';
+  return `${pick('year')}-${pick('month')}-${pick('day')}`;
+};
+const slashDate = (date?: string | null) => {
+  if (!date) return '';
+  const [, month, day] = date.slice(0, 10).split('-');
+  return `${Number(day)}/${Number(month)}`;
+};
+const notebookMoney = (amount: number) => {
+  const negative = amount < 0;
+  const abs = Math.abs(Number(amount) || 0);
+  const cents = Math.round(abs * 100) % 100 !== 0;
+  const formatted = new Intl.NumberFormat('es-AR', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 }).format(abs);
+  return `${negative ? '−' : ''}$${formatted}`;
+};
+const notebookOrder = (a: Movement, b: Movement) => a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1;
+const notebookLabel = (movement: Movement) => movement.type !== 'income' && movement.partnerName ? `${movement.partnerName} - ${movement.concept}` : movement.concept;
 const clockTime = (value?: string | null) => {
   const match = String(value || '').match(/(\d{1,2}):(\d{2})/);
   if (!match) return '';
@@ -207,6 +226,7 @@ function AppRoutes() {
     <Route path="/inicio"><Protected><AppShell page="inicio"><DashboardPage /></AppShell></Protected></Route>
     <Route path="/agenda"><Protected><AppShell page="agenda"><AgendaPage /></AppShell></Protected></Route>
     <Route path="/movimientos"><Protected><AppShell page="movimientos"><MovementsPage /></AppShell></Protected></Route>
+    <Route path="/verdu"><Protected><AppShell page="verdu"><NotebookPage /></AppShell></Protected></Route>
     <Route path="/socios"><Protected><AppShell page="socios"><PartnersPage /></AppShell></Protected></Route>
     <Route path="/informes"><Protected><AppShell page="informes"><ReportsPage /></AppShell></Protected></Route>
     <Route path="/actividades/:id"><Protected><ActivityDetailPage /></Protected></Route>
@@ -224,6 +244,7 @@ const navItems = [
   { path: '/inicio', label: 'Inicio', icon: LayoutDashboard },
   { path: '/agenda', label: 'Agenda', icon: CalendarDays },
   { path: '/movimientos', label: 'Movimientos', icon: CircleDollarSign },
+  { path: '/verdu', label: 'Verdu de Pachu', icon: BookOpen },
   { path: '/socios', label: 'Miembros', icon: Users },
   { path: '/informes', label: 'Informes', icon: FileText },
 ];
@@ -380,6 +401,104 @@ function ActivityFields({ activity }: { activity?: Activity } = {}) {
 
 function Field({ label, full = false, children }: { label: string; full?: boolean; children: ReactNode }) {
   return <div className={`form-field ${full ? 'full' : ''}`}><label>{label}</label>{children}</div>;
+}
+
+function NotebookPage() {
+  const qc = useQueryClient();
+  const screen = useMovementsScreen({ includeVoided: false });
+  const create = useCreateMovement();
+  const [kind, setKind] = useState<'income' | 'expense' | 'back' | ''>('');
+  const [memberId, setMemberId] = useState('');
+  const [concept, setConcept] = useState('');
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+  const lines = (screen.data?.movements || []).filter(movement => movement.origin === 'pachu');
+  const incomes = lines.filter(movement => movement.type === 'income').sort(notebookOrder);
+  const expenses = lines.filter(movement => movement.type === 'expense' || movement.type === 'partner_expense').sort(notebookOrder);
+  const returned = lines.filter(movement => movement.type === 'reimbursement').sort(notebookOrder);
+  const saldo = incomes.reduce((total, movement) => total + movement.amount, 0) - expenses.reduce((total, movement) => total + movement.amount, 0);
+  const needsMember = kind === 'expense' || kind === 'back';
+  const partners = [...(screen.data?.partners || [])].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const choose = (next: 'income' | 'expense' | 'back') => { setKind(next); setError(''); };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const value = parseAmount(amount);
+    if (needsMember && !memberId) { setError('Elegí un integrante.'); return; }
+    if (!concept.trim()) { setError('Escribí el concepto.'); return; }
+    if (!Number.isFinite(value) || value <= 0) { setError('Escribí el importe.'); return; }
+    const payload: MovementInput = {
+      type: kind === 'income' ? 'income' : kind === 'expense' ? 'partner_expense' : 'reimbursement',
+      date: notebookToday(),
+      concept: concept.trim(),
+      amount: value,
+      partnerId: needsMember ? Number(memberId) : null,
+      categoryId: null,
+      activityId: null,
+      notes: null,
+      origin: 'pachu',
+    };
+    create.mutate({ data: payload }, {
+      onSuccess: () => {
+        void qc.invalidateQueries({ queryKey: getMovementsScreenQueryKey() });
+        void qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        void qc.invalidateQueries({ queryKey: getListPartnersQueryKey() });
+        void qc.invalidateQueries({ queryKey: ['reports'] });
+        setConcept('');
+        setAmount('');
+        setError('');
+      },
+      onError: err => setError(errorText(err)),
+    });
+  };
+  return <div className="content notebook-page">
+    <div className="notebook-paper">
+      <h1>El cuadernito de Pachu</h1>
+      <div className="notebook-choices" role="group" aria-label="Qué anotar">
+        <button type="button" className="notebook-blob" aria-pressed={kind === 'income'} onClick={() => choose('income')} data-testid="button-notebook-income">Ingreso</button>
+        <button type="button" className="notebook-blob" aria-pressed={kind === 'expense'} onClick={() => choose('expense')} data-testid="button-notebook-expense">Gasto</button>
+        <button type="button" className="notebook-blob" aria-pressed={kind === 'back'} onClick={() => choose('back')} data-testid="button-notebook-return">Le devolvimos</button>
+      </div>
+      {kind && <form className="notebook-form" onSubmit={submit}>
+        {needsMember && <label>Integrante
+          <select value={memberId} onChange={event => { setMemberId(event.target.value); setError(''); }} data-testid="select-notebook-member">
+            <option value="">Elegí un integrante</option>
+            {partners.map(partner => <option key={partner.id} value={partner.id}>{partner.name}</option>)}
+          </select>
+        </label>}
+        <label>Concepto
+          <input value={concept} onChange={event => { setConcept(event.target.value); setError(''); }} placeholder={kind === 'income' ? 'Entradas' : 'Tela'} autoComplete="off" data-testid="input-notebook-concept" />
+        </label>
+        <label>Importe ($)
+          <input value={amount} onChange={event => { setAmount(formatThousandsInput(event.target.value)); setError(''); }} inputMode="decimal" placeholder="0" autoComplete="off" data-testid="input-notebook-amount" />
+        </label>
+        {error && <p className="notebook-error">{error}</p>}
+        {needsMember && partners.length === 0 && <p className="notebook-error">Para un gasto o una devolución, primero cargá el integrante en Miembros.</p>}
+        <div className="notebook-actions">
+          <button type="submit" className="notebook-blob notebook-save" disabled={create.isPending || (needsMember && partners.length === 0)} data-testid="button-notebook-save">{create.isPending ? 'Anotando…' : 'Anotar'}</button>
+          <span>Fecha de hoy, {slashDate(notebookToday())}.</span>
+        </div>
+      </form>}
+      {screen.isLoading ? <p className="notebook-wait">Abriendo el cuaderno…</p> : screen.isError ? <QueryError retry={() => void screen.refetch()} /> : <>
+        <div className="notebook-heading">Ingresos:</div>
+        {incomes.map(movement => <NotebookRow key={movement.id} movement={movement} />)}
+        <div className="notebook-heading">Gastos:</div>
+        {expenses.map(movement => <NotebookRow key={movement.id} movement={movement} negative />)}
+        {returned.length > 0 && <>
+          <div className="notebook-heading">Devuelto:</div>
+          {returned.map(movement => <NotebookRow key={movement.id} movement={movement} negative />)}
+        </>}
+        <div className="notebook-saldo"><span>Saldo:</span><strong data-testid="text-notebook-saldo">{notebookMoney(saldo)}</strong></div>
+      </>}
+    </div>
+  </div>;
+}
+
+function NotebookRow({ movement, negative = false }: { movement: Movement; negative?: boolean }) {
+  return <div className="notebook-row" data-testid={`row-notebook-${movement.id}`}>
+    <span>{slashDate(movement.date)}</span>
+    <span>{notebookLabel(movement)}</span>
+    <span>{notebookMoney(negative ? -movement.amount : movement.amount)}</span>
+  </div>;
 }
 
 function MovementsPage() {

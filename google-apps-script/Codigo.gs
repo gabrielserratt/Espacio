@@ -12,6 +12,7 @@
  *
  * La web manda POST con Content-Type text/plain y este JSON:
  *   { user, password, action, ... }
+ * El cuadernito escribe en Movimientos y marca la columna origen con "pachu".
  * Acciones: login, dashboard, listPartners, createPartner, updatePartner,
  * partnerLedger, listActivities, createActivity, getActivity, updateActivity,
  * duplicateActivity, cancelActivity, listCategories, createCategory,
@@ -36,7 +37,7 @@ var WRITE_ACTIONS = {
 var SHEETS = {
   Socios: ["id", "nombre", "email", "telefono", "notas", "creado", "actualizado"],
   Actividades: ["id", "nombre", "tipo", "fecha", "inicio", "fin", "responsable", "estado", "descripcion", "notas", "pendientes", "repeticion", "creado", "actualizado"],
-  Movimientos: ["id", "tipo", "fecha", "concepto", "importe", "categoriaId", "actividadId", "socioId", "notas", "estado", "motivoAnulacion", "creado", "actualizado"],
+  Movimientos: ["id", "tipo", "fecha", "concepto", "importe", "categoriaId", "actividadId", "socioId", "notas", "estado", "motivoAnulacion", "creado", "actualizado", "origen"],
   Categorias: ["id", "nombre", "aplicaA", "predeterminada", "activa"]
 };
 
@@ -136,6 +137,15 @@ function ensureSheets(formatColumns) {
     if (extra && extra.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(extra);
   });
   if (formatColumns) markTextColumns(ss);
+  ensureMovementOrigin(ss);
+}
+
+function ensureMovementOrigin(ss) {
+  var sheet = ss.getSheetByName("Movimientos");
+  if (!sheet) return;
+  var column = SHEETS.Movimientos.length;
+  if (text(sheet.getRange(1, column).getValue()) === "origen") return;
+  sheet.getRange(1, column).setValue("origen").setFontWeight("bold");
 }
 
 function markTextColumns(ss) {
@@ -351,6 +361,7 @@ function mapMovement(row, categories, activities, partners) {
     partnerName: partner ? text(partner.nombre) : null,
     receiptPath: null,
     notes: text(row.notas),
+    origin: text(row.origen),
     status: text(row.estado) || "active",
     voidReason: text(row.motivoAnulacion),
     createdAt: text(row.creado),
@@ -685,7 +696,8 @@ function validateMovement(input) {
     categoryId: categoryId,
     activityId: activityId,
     partnerId: partnerId,
-    notes: text(input.notes) || ""
+    notes: text(input.notes) || "",
+    origin: input.origin === "pachu" ? "pachu" : ""
   };
 }
 
@@ -703,7 +715,8 @@ function movementRow(id, input, status, voidReason, created) {
     status,
     voidReason || "",
     created,
-    nowIso()
+    nowIso(),
+    input.origin === "pachu" ? "pachu" : ""
   ];
 }
 
@@ -734,7 +747,8 @@ function updateMovement(id, input) {
     categoryId: input.categoryId !== undefined ? input.categoryId : current.categoriaId,
     activityId: input.activityId !== undefined ? input.activityId : current.actividadId,
     partnerId: input.partnerId !== undefined ? input.partnerId : current.socioId,
-    notes: input.notes !== undefined ? input.notes : current.notas
+    notes: input.notes !== undefined ? input.notes : current.notas,
+    origin: text(current.origen) === "pachu" ? "pachu" : ""
   });
   var sheet = SpreadsheetApp.getActive().getSheetByName("Movimientos");
   var row = rowNumber("Movimientos", id);

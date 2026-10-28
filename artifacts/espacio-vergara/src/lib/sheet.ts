@@ -82,6 +82,7 @@ export type Movement = {
   partnerName: string | null;
   receiptPath: string | null;
   notes: string | null;
+  origin: string | null;
   status: 'active' | 'voided';
   voidReason: string | null;
   createdAt: string | null;
@@ -97,6 +98,7 @@ export type MovementInput = {
   activityId?: number | null;
   partnerId?: number | null;
   notes?: string | null;
+  origin?: string | null;
 };
 
 export function readSession(): Session | null {
