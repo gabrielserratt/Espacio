@@ -183,29 +183,36 @@ const typeLabels: Record<string, string> = {
 };
 
 function Home() {
-  const { session } = useSession();
+  const { session, signIn } = useSession();
+  const [, setLocation] = useLocation();
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
   if (session) return <Redirect to="/inicio" />;
-  return <div className="landing">
-    <nav className="landing-nav">
+  async function submit(form: HTMLFormElement) {
+    const data = new FormData(form);
+    setPending(true);
+    setError('');
+    try {
+      await signIn(String(data.get('user') || ''), String(data.get('password') || ''));
+      setLocation('/inicio');
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setPending(false);
+    }
+  }
+  return <div className="auth-screen gate">
+    <div className="auth-form-side"><div className="auth-card">
       <Brand />
-      <Link href="/sign-in" className="button" data-testid="link-sign-in">Entrar <ArrowRight size={14} /></Link>
-    </nav>
-    <main className="landing-main">
-      <div className="landing-copy">
-        <div className="landing-kicker">Casa Pela · Uso interno</div>
-        <h1>Agenda, cuentas<br />y miembros.</h1>
-        <p>Para cargar lo de la sala y llevar las cuentas de la compañía.</p>
-        <div className="landing-cta">
-          <Link href="/sign-in" className="button button-primary" data-testid="link-access">Entrar <ArrowRight size={15} /></Link>
-          <span style={{ color: '#8A8478', fontSize: 11 }}>Uso interno</span>
-        </div>
-      </div>
-      <div className="landing-visual" aria-label="Ilustración abstracta de una sala" role="img">
-        <div className="visual-frame" /><div className="visual-inner"><div className="visual-sun" /><div className="visual-floor" /></div>
-        <div className="visual-caption">USO INTERNO</div>
-      </div>
-    </main>
-    <footer className="landing-foot"><span>Casa Pela</span><span>Gestión interna</span><span>Agenda · Cuentas · Miembros</span></footer>
+      <h2>Ingreso</h2>
+      <p>Tu nombre y la contraseña de la casa.</p>
+      <form onSubmit={event => { event.preventDefault(); void submit(event.currentTarget); }} style={{ display: 'grid', gap: 12 }}>
+        <Field label="Nombre"><input className="field" name="user" required autoComplete="username" data-testid="input-user" /></Field>
+        <Field label="Contraseña"><input className="field" name="password" type="password" required autoComplete="current-password" data-testid="input-password" /></Field>
+        {error && <div className="error-note">{error}</div>}
+        <button className="button button-primary" disabled={pending} data-testid="button-sign-in">{pending ? 'Entrando…' : 'Entrar'}</button>
+      </form>
+    </div></div>
   </div>;
 }
 
@@ -229,44 +236,9 @@ function Brand() {
   </Link>;
 }
 
-function SignInPage() {
-  const { signIn } = useSession();
-  const [, setLocation] = useLocation();
-  const [error, setError] = useState('');
-  const [pending, setPending] = useState(false);
-  async function submit(form: HTMLFormElement) {
-    const data = new FormData(form);
-    setPending(true);
-    setError('');
-    try {
-      await signIn(String(data.get('user') || ''), String(data.get('password') || ''));
-      setLocation('/inicio');
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setPending(false);
-    }
-  }
-  return <div className="auth-screen">
-    <aside className="auth-aside"><Brand /><div><div className="eyebrow">Ingreso</div><h1>Agenda, movimientos y miembros.</h1><p>Tu nombre y la contraseña de la casa.</p></div><span className="eyebrow">Uso interno</span></aside>
-    <div className="auth-form-side"><div className="auth-card">
-      <Link href="/" className="auth-back" data-testid="link-back-home">← Volver al inicio</Link>
-      <div style={{ height: 28 }} />
-      <h2>Ingreso</h2>
-      <p>Tu nombre y la contraseña de la casa.</p>
-      <form onSubmit={event => { event.preventDefault(); void submit(event.currentTarget); }} style={{ display: 'grid', gap: 12 }}>
-        <Field label="Nombre"><input className="field" name="user" required autoComplete="username" data-testid="input-user" /></Field>
-        <Field label="Contraseña"><input className="field" name="password" type="password" required autoComplete="current-password" data-testid="input-password" /></Field>
-        {error && <div className="error-note">{error}</div>}
-        <button className="button button-primary" disabled={pending} data-testid="button-sign-in">{pending ? 'Entrando…' : 'Entrar'}</button>
-      </form>
-    </div></div>
-  </div>;
-}
-
 function AppRoutes() {
   return <Switch>
-    <Route path="/sign-in/*?" component={SignInPage} />
+    <Route path="/sign-in/*?" component={Home} />
     <Route path="/" component={Home} />
     <Route path="/inicio"><Protected><AppShell page="inicio"><DashboardPage /></AppShell></Protected></Route>
     <Route path="/agenda"><Protected><AppShell page="agenda"><AgendaPage /></AppShell></Protected></Route>
