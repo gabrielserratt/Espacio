@@ -2,8 +2,8 @@ import { type FormEvent, type ReactNode, createContext, useContext, useEffect, u
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays,
-  Check, CircleDollarSign, ClipboardList, Download, FileText, HandCoins, HeartHandshake,
-  BookOpen, LayoutDashboard, LogOut, Plus, Receipt, Search, Settings2, Users, Wallet, X,
+  Check, ClipboardList, Download, HandCoins, HeartHandshake,
+  LogOut, Plus, Receipt, Search, Settings2, Users, Wallet, X,
 } from 'lucide-react';
 import {
   getGetActivityQueryKey, getGetDashboardQueryKey, getGetPartnerLedgerQueryKey,
@@ -192,7 +192,7 @@ function Home() {
     </nav>
     <main className="landing-main">
       <div className="landing-copy">
-        <div className="landing-kicker">Casa Lupanal · Uso interno</div>
+        <div className="landing-kicker">Casa Pela · Uso interno</div>
         <h1>Agenda, cuentas<br />y miembros.</h1>
         <p>Para cargar lo de la sala y llevar las cuentas de la compañía.</p>
         <div className="landing-cta">
@@ -205,17 +205,17 @@ function Home() {
         <div className="visual-caption">USO INTERNO</div>
       </div>
     </main>
-    <footer className="landing-foot"><span>Casa Lupanal</span><span>Gestión interna</span><span>Agenda · Cuentas · Miembros</span></footer>
+    <footer className="landing-foot"><span>Casa Pela</span><span>Gestión interna</span><span>Agenda · Cuentas · Miembros</span></footer>
   </div>;
 }
 
 function TheaterMasks() {
   return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-    <ellipse cx="15.2" cy="9.4" rx="5.6" ry="6.6" fill="#E2B657" />
+    <ellipse cx="15.2" cy="9.4" rx="5.6" ry="6.6" fill="#E6A317" />
     <circle cx="13.3" cy="8.2" r="0.75" fill="#2C2A26" />
     <circle cx="17.1" cy="8.2" r="0.75" fill="#2C2A26" />
     <path d="M13 11.6c1.3-1 3.1-1 4.4 0" fill="none" stroke="#2C2A26" strokeWidth="1.1" strokeLinecap="round" />
-    <ellipse cx="9" cy="14.6" rx="5.6" ry="6.6" fill="#FFFCF7" />
+    <ellipse cx="9" cy="14.6" rx="5.6" ry="6.6" fill="#FFFCF7" stroke="#1C1A16" strokeWidth="0.8" />
     <circle cx="7.1" cy="13.4" r="0.75" fill="#2C2A26" />
     <circle cx="10.9" cy="13.4" r="0.75" fill="#2C2A26" />
     <path d="M6.8 16.4c1.3 1.1 3.1 1.1 4.4 0" fill="none" stroke="#2C2A26" strokeWidth="1.1" strokeLinecap="round" />
@@ -225,7 +225,7 @@ function TheaterMasks() {
 function Brand() {
   return <Link href="/" className="brand" data-testid="link-brand">
     <span className="brand-mark"><TheaterMasks /></span>
-    <span className="brand-name">Casa Lupanal<span className="brand-caption">Uso interno</span></span>
+    <span className="brand-name">Casa Pela<span className="brand-caption">Uso interno</span></span>
   </Link>;
 }
 
@@ -286,39 +286,31 @@ function Protected({ children }: { children: ReactNode }) {
 }
 
 const navItems = [
-  { path: '/inicio', label: 'Inicio', icon: LayoutDashboard },
-  { path: '/agenda', label: 'Agenda', icon: CalendarDays },
-  { path: '/movimientos', label: 'Movimientos', icon: CircleDollarSign },
-  { path: '/verdu', label: 'Verdu de Pachu', icon: BookOpen },
-  { path: '/socios', label: 'Miembros', icon: Users },
-  { path: '/informes', label: 'Informes', icon: FileText },
+  { path: '/inicio', label: 'Inicio' },
+  { path: '/agenda', label: 'Agenda' },
+  { path: '/movimientos', label: 'Movimientos' },
+  { path: '/verdu', label: 'Verdu de Pachu' },
+  { path: '/socios', label: 'Miembros' },
+  { path: '/informes', label: 'Informes' },
 ];
 
 function AppShell({ page, children }: { page: string; children: ReactNode }) {
   const { session, signOut } = useSession();
   const [, setLocation] = useLocation();
-  const initials = (session?.user?.[0] || 'V').toUpperCase();
-  return <div className="workspace">
-    <div className="app-shell">
-      <aside className="sidebar">
+  return <div className="workspace house">
+    <div className="house-bar">
+      <header className="topbar">
         <Brand />
-          <div><div className="nav-label">Menú</div><nav className="nav-list">
-          {navItems.map(item => <Link key={item.path} href={item.path} className={`nav-link ${page === item.path.slice(1) ? 'active' : ''}`} data-testid={`link-nav-${item.path.slice(1)}`}><item.icon size={16} strokeWidth={1.7} /><span>{item.label}</span></Link>)}
-        </nav></div>
-        <div className="sidebar-bottom">
-          <div className="venue-note"><strong>Uso interno</strong>Agenda, movimientos y cuentas de los miembros.</div>
-          <div className="user-line"><span className="user-initial">{initials}</span><div className="user-meta">{session?.user || 'Casa Lupanal'}<small>Casa conectada</small></div><button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button></div>
+        <div className="topbar-right" data-testid="text-signed-in-user">
+          <span className="signed-name">{session?.user || 'Casa Pela'}</span>
+          <button className="logout" aria-label="Cerrar sesión" data-testid="button-sign-out" onClick={() => { signOut(); setLocation('/'); }}><LogOut size={15} /></button>
         </div>
-      </aside>
-      <main className="main-area">
-        <header className="topbar">
-          <div className="breadcrumb"><span style={{ color: '#A39E94' }}>Casa Lupanal</span><span style={{ padding: '0 8px' }}>/</span>{navItems.find(item => item.path === `/${page}`)?.label || 'Actividad'}</div>
-          <div className="topbar-right" data-testid="text-signed-in-user"><span className="today-chip">{session?.user || 'Casa Lupanal'}</span></div>
-        </header>
-        {children}
-      </main>
+      </header>
+      <nav className="section-nav" aria-label="Secciones">
+        {navItems.map(item => <Link key={item.path} href={item.path} className={page === item.path.slice(1) ? 'active' : ''} data-testid={`link-nav-${item.path.slice(1)}`}>{item.label}</Link>)}
+      </nav>
     </div>
-    <nav className="mobile-nav">{navItems.map(item => <Link key={item.path} href={item.path} className={page === item.path.slice(1) ? 'active' : ''} data-testid={`mobile-nav-${item.path.slice(1)}`}><item.icon size={17} /><span>{item.label}</span></Link>)}</nav>
+    <main className="main-area">{children}</main>
   </div>;
 }
 
